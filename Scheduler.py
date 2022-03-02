@@ -27,6 +27,9 @@ class Scheduler:
 		IL.set_path_weights()
 		IL.adjust_path_weights(self.anti_dependencies)
 		
+		#actual scheduling:
+
+		
 		IL.print_instructions()
 	
 	def dependencies_are_equal(self,node):
