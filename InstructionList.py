@@ -6,6 +6,10 @@ class InstructionList:
 			self.latency = latency	# weight
 			self.fix_latency = -1
 			self.has_been_fixed = False
+			self.needs_scheduling = False
+
+			self.in_degree = 0
+			self.in_fix = 0
 			self.path_weight = 0
 			self.type = instruction_type
 			self.next =  None
@@ -51,6 +55,8 @@ class InstructionList:
 		io_index = -1
 		if node.is_leaf():
 			node.path_weight = node.latency
+			node.in_fix += 1
+			node.in_degree+=1
 			self.instructions.append(node)
 			self.register_lookup.update({ node.get_writable() : [len(self.instructions)-1] })
 		else:
@@ -60,6 +66,7 @@ class InstructionList:
 				branch_index = self.register_lookup[readable]
 			except KeyError:
 				branch_index = self.get_read_indecies(readable)
+			node.in_degree = len(branch_index)
 			for index in branch_index:
 				pointer = self.instructions[index]
 				prev = None
@@ -124,7 +131,7 @@ class InstructionList:
 			while(ptr is not None):
 				ptr_path_weight -= ptr.latency
 				if ptr.instruction in target_info and ptr.order_number in target_info:
-					print("dependencies:: "+pointer.instruction+" : "+ptr.instruction)
+					#print("dependencies:: "+pointer.instruction+" : "+ptr.instruction)
 					dep_potential = pointer_weight+pointer.latency
 					ptr_potential = ptr_path_weight+ptr.latency
 					if pointer_weight < ptr_path_weight and dep_potential < ptr_potential:
@@ -132,7 +139,7 @@ class InstructionList:
 						pointer.fix_latency = fix_value#+pointer.latency
 						pointer.has_been_fixed = True
 						new_potential = pointer_weight+pointer.latency
-						print("fix value: "+str(fix_value))
+						#print("fix value: "+str(fix_value))
 						if new_potential < dep_potential:
 							print("we fucked it: check decide_weight")
 						return fix_value
