@@ -12,25 +12,110 @@ class Scheduler:
 
 	def schedule(self):
 		execute = {"-a":self.longest_latency, "-b":self.highest_latency, "-c":self.my_own};
-		execute[self.mode]()
+		statement = execute[self.mode]()
+		return statement
 
 	def longest_latency(self):
 		IL = InstructionList()
 		order = 1
 		for line in self.instructions:
-			line_info = self.parse_instruction(line, IL)
+			#line_info = self.parse_instruction(line, IL)
 			self.find_all_potential_anti(line_info[0], order)
 			IL.add_instruction(line_info, order)
 			order+=1
 		self.find_dependence(IL)
-		print(self.anti_dependencies)
+		#print(self.anti_dependencies)
 		IL.set_path_weights()
 		IL.adjust_path_weights(self.anti_dependencies)
 		
 		#actual scheduling:
+		ready = [[IL.path_weights[chain_index], chain_index, chain]for chain_index,chain in enumerate(IL.instructions)]
+		active = []
+		self.scheduled.append(ready.pop(0)[2].instruction)
 
-		
-		IL.print_instructions()
+		done = False
+		cycle_count = 0
+		seen = {}
+		#print(f"total instruction counter: {IL.instruction_counter}")
+		while not done:
+			ready.sort(key=lambda x: x[0], reverse=True)
+			#print(f"ready: {ready}")
+			if ready:
+				highest_latency = ready.pop(0)
+				key = highest_latency[2].order_number
+				if key in seen:
+					seen[key][0]+= 1
+					seen[key].append(highest_latency)
+				else:
+					seen.update({key : [1, highest_latency]})
+
+				#print(f"{highest_latency[2].instruction} seen {seen[key]} times and indegree {highest_latency[2].in_degree}")
+				if seen[key][0] == highest_latency[2].in_degree:
+					#print("scheduled")
+					overworked = seen[key]
+					overworked.pop(0)
+					for thread in overworked:
+						active.append([cycle_count+thread[2].latency, highest_latency])
+					self.scheduled.append(thread[2].instruction)
+
+			if len(self.scheduled) == IL.instruction_counter:
+				break
+			self.active_done_check(active, ready, cycle_count, IL)
+			cycle_count+=1
+
+		#IL.print_instructions()
+		#self.print_scheduled()
+
+	def active_done_check(self, active, ready, cycle_count, IL):
+		match_tracker = []
+		sorry = []
+		while active:
+			item = active.pop(0)
+			if cycle_count in item:
+				cluster = item[1]
+				weight = cluster[0]
+				j = cluster[1]
+				p = cluster[2]
+				if p.next is not None:
+					# print("not none")
+					# print(f"{p.instruction} w indegree of {p.in_degree}")
+					
+					IL.path_weights[j] -= p.fix_latency if p.has_been_fixed else p.latency
+					ready.append([ IL.path_weights[j], j, p.next ])
+			else:
+				sorry.append(item)
+		for i in sorry:
+			active.append(i)
+
+		# match_tracker.reverse()
+		# print(match_tracker)
+		# for i in match_tracker:
+		# 	cluster = active.pop(i)[1]
+		# 	weight = cluster[0]
+		# 	j = cluster[1]
+		# 	p = cluster[2]
+		# 	if p.next is not None:
+		# 		# you probably only need one of these
+		# 		weight -= p.fix_latency if p.has_been_fixed else p.latency
+		# 		IL.path_weights[j] -= p.fix_latency if p.has_been_fixed else p.latency
+		# 		#####
+		# 		ready.append([ IL.path_weights[j], j, p.next ])
+
+		#print("yep")
+		# while active and del_count < lenght_check:
+		# 	if cycle_count in active[del_count]:
+		# 		cluster = active.pop(del_count)[1]
+		# 		weight = cluster[0]
+		# 		j = cluster[1]
+		# 		p = cluster[2]
+		# 		# you probably only need one of these
+		# 		weight -= p.fix_latency if p.has_been_fixed else p.latency
+		# 		IL.path_weights[j] -= p.fix_latency if p.has_been_fixed else p.latency
+		# 		#####
+		# 		ready.append([ IL.path_weights[j], j, p.next ])
+		# 		lenght_check-=1
+		# 	else:
+		# 		del_count+=1
 	
 	def dependencies_are_equal(self,node):
 		info = self.anti_dependencies[node.instruction]
@@ -156,4 +241,10 @@ class Scheduler:
 		print("mode b")
 	def my_own(self):
 		print("mode c")
+
+	def print_scheduled(self):
+		print("------------------Scheduled------------------")
+		for i in self.scheduled:
+			print(i)
+		print("------------------end------------------")
 

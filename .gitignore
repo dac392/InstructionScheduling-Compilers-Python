@@ -2,3 +2,7 @@
 __pycache__/
 scratchWork.py 
 *.txt
+*.i
+InstructionList.py
+Scheduler.py
+
