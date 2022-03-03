@@ -19,7 +19,7 @@ class Scheduler:
 		IL = InstructionList()
 		order = 1
 		for line in self.instructions:
-			line_info = self.parse_instruction(line, IL)
+			#line_info = self.parse_instruction(line, IL)
 			self.find_all_potential_anti(line_info[0], order)
 			IL.add_instruction(line_info, order)
 			order+=1

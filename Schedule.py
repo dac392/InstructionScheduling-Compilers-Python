@@ -1,6 +1,6 @@
 import sys
 import fileinput
-from Scheduler import Scheduler
+from Scheduler_t import Scheduler_t
 
 #constants:
 MODE_A = "-a"
@@ -47,7 +47,7 @@ def print_instruction(ins):
 def main(args):
 	mode = argument_processing(args)
 	instructions = piping()
-	ir = Scheduler(mode, instructions)
+	ir = Scheduler_t(mode, instructions)
 	ir.schedule()
 
 
