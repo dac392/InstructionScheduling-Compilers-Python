@@ -1,9 +1,13 @@
 import re
 class Parser_t:
 	def __init__ (self):
-		self.arithmatic_latencies = {"add":[1, "arithmatic"],"sub":[1, "arithmatic"], "mult":[3, "arithmatic"], "div":[3, "arithmatic"]}
-		self.memory_latencies = {"load":[5,"load1"], "loadI":[1,"load2"],"loadAI":[5,"load2"], "store":[5,"memory"], "storeAI":[5,"memory"]}
+		self.arithmatic_latencies = {"add":[1, "arithmatic"],"sub":[1, "arithmatic"], "mult":[2, "arithmatic"], "div":[2, "arithmatic"]}
+		self.memory_latencies = {"load":[3,"load1"], "loadI":[1,"load2"],"loadAI":[3,"load2"], "store":[3,"memory"], "storeAI":[3,"memory"]}
 		self.io_latencies = {"outputAI":[1,"io"]}
+		
+		# self.arithmatic_latencies = {"add":[1, "arithmatic"],"sub":[1, "arithmatic"], "mult":[3, "arithmatic"], "div":[3, "arithmatic"]}
+		# self.memory_latencies = {"load":[5,"load1"], "loadI":[1,"load2"],"loadAI":[5,"load2"], "store":[5,"memory"], "storeAI":[5,"memory"]}
+		# self.io_latencies = {"outputAI":[1,"io"]}
 		self.register_lookup = {}
 		self.potential_dependencies = {}
 		self.anti_dependence = {}
