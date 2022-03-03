@@ -1,6 +1,6 @@
 import re
 class Parser_t:
-	def Parser(self):
+	def __init__ (self):
 		self.arithmatic_latencies = {"add":[1, "arithmatic"],"sub":[1, "arithmatic"], "mult":[3, "arithmatic"], "div":[3, "arithmatic"]}
 		self.memory_latencies = {"load":[5,"load1"], "loadI":[1,"load2"],"loadAI":[5,"load2"], "store":[5,"memory"], "storeAI":[5,"memory"]}
 		self.io_latencies = {"outputAI":[1,"io"]}
@@ -10,26 +10,28 @@ class Parser_t:
 		self.last_read_from = {}
 
 	def update_registers(self, writable, value):
+		#print(f"registering {value}")
 		self.register_lookup.update({writable : value})
 	def find_branches(self, instruction_f):
 		keyword = instruction_f[0]
 		readable = instruction_f[1]
-		branch_index = None
+		branch_index = []
 
 		if readable in self.register_lookup:
 			branch_index = self.register_lookup[readable]
+			#print(f"from parse: {branch_index}")
 			return branch_index
 		
 		csv = readable.split(",")
-		arg1 = self.register_lookup[registers[0]]
-		arg2 = self.register_lookup[registers[1]]
+		arg1 = self.register_lookup[csv[0]]
+		arg2 = self.register_lookup[csv[1]]
 		if arg1 == arg2:
 			branch_index.append(arg1[0])
 		else:
 			for i in arg1:
 				branch_index.append(i)
 			for i in arg2:
-				if i not in sta:
+				if i not in branch_index:
 					branch_index.append(i)
 		return branch_index
 
@@ -51,7 +53,7 @@ class Parser_t:
 				statement.append(late_info[1]) 	# instruction type [arithmatic, memory, io]
 			except KeyError:
 				continue
-		#self.find_potential_anti(statement[0], inst_num)
+		# self.find_potential_anti(statement[0], inst_num)
 		return statement
 
 	def format_instruction(self, instruction):
@@ -83,7 +85,9 @@ class Parser_t:
 
 		return statement
 
-	def find_all_potential_anti(self, instruction, order_number):
+
+
+	def find_potential_anti(self, instruction, order_number):
 		#print(instruction)
 		fragment = instruction.split(" ")
 		#print(fragment)

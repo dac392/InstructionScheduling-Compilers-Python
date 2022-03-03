@@ -1,5 +1,5 @@
 class Instruction_t:
-	def Instruction_t(self, f_inst, inst_num, base_late, inst_type):
+	def __init__ (self, f_inst, inst_num, base_late, inst_type):
 		self.instruction = f_inst
 		self.instruction_number = inst_num
 		self.base_latency = base_late

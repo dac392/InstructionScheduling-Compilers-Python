@@ -52,7 +52,7 @@ def main(args):
 
 
 
-	print_instruction(ir.scheduled)
+	#print_instruction(ir.scheduled)
 	print_error("\n-----------------DONE---------------------------\n")
 
 if __name__ == "__main__":

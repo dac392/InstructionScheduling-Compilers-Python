@@ -1,8 +1,8 @@
 from InstructionList_t import InstructionList_t
 class Scheduler_t:
-	def Scheduler_t(self, mode, instructions):
+	def __init__ (self, mode, instructions):
 		self.mode = mode
-		self.raw_instructions = []
+		self.raw_instructions = instructions
 		self.scheduled_instructions = []
 
 	def schedule(self):
@@ -11,7 +11,12 @@ class Scheduler_t:
 		return statement
 
 	def longest_latency(self):
-		IL = InstructionList()
-		for line in self.instructions:
+		IL = InstructionList_t()
+		for line in self.raw_instructions:
 			IL.add_instruction(line)
+		IL.find_anti_dependence()
 		IL.print_instructions()
+	def highest_latency(self):
+		print("B")
+	def my_own(self):
+		print("C")
