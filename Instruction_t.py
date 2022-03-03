@@ -4,6 +4,7 @@ class Instruction_t:
 		self.instruction_number = inst_num
 		self.base_latency = base_late
 		self.fix_latency = 0
+		self.individual_weight = 0
 		self.type = inst_type
 		self.next = None
 
@@ -25,6 +26,6 @@ class Instruction_t:
 			return True
 		return False
 	def is_terminal(self):
-		if self.instruction.next is None:
+		if self.next is None and self.type != "io" and self.instruction_number != 0:
 			return True
 		return False

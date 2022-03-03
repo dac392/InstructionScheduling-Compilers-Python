@@ -15,6 +15,7 @@ class Scheduler_t:
 		for line in self.raw_instructions:
 			IL.add_instruction(line)
 		IL.find_anti_dependence()
+
 		IL.print_instructions()
 	def highest_latency(self):
 		print("B")
