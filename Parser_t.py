@@ -96,17 +96,29 @@ class Parser_t:
 		fragment = instruction.split(" ")
 		#print(fragment)
 		keyword = fragment[0]
+		readable = None
+		writable = None
 		if keyword == "outputAI":
-			return
-		readable = fragment[1]
-		writable = fragment[3]
+			readable = fragment[1]
+			for key,inst_info in self.last_read_from.items():
+				if inst_info[1] == order_number-1:
+					writable = key
+			
+		else:
+			readable = fragment[1]
+			writable = fragment[3]
+
 		imediate = re.search(r"^r?\d*$",readable)
 		memory = re.search(r"^r\d*,\d*$",readable)
-		if imediate is not None or memory is not None:
+		if keyword == "outputAI":
+			self.last_read_from.update({writable : [instruction, order_number] })
+		elif imediate is not None or memory is not None:
 			if writable in self.last_read_from:
 				prev_info = self.last_read_from[writable]
+				#print(f"at instructions {order_number} readable {readable} writable {writable} and k {prev_info}")
 				k = prev_info[0]
 				ok = prev_info[1]
+				#print(f"ok {ok}")
 				self.potential_dependencies.update({ k : [instruction, ok, order_number]})
 			self.last_read_from.update({readable : [instruction, order_number]})
 		else:
@@ -115,10 +127,13 @@ class Parser_t:
 				info = self.last_read_from[writable]
 				k = info[0]
 				ok = info[1]
+				#print(f"ok {ok}")
 				self.potential_dependencies.update({k : [instruction, ok, order_number]})
 			self.last_read_from.update({csv[0] : [instruction, order_number]})
 			if csv[0] is not csv[1]:
 				self.last_read_from.update({csv[1] : [instruction, order_number]})
+		#print(self.last_read_from)
+		#print()
 
 
 

@@ -150,7 +150,7 @@ class InstructionList_t:
 
 				ptr = ptr.next
 		# self.find_weights()
-		# print(self.anti_dependencies)
+		#print(self.anti_dependencies)
 		self.adjust_path_weights()
 		# print()
 		self.weight_test()
