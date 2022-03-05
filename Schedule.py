@@ -1,6 +1,6 @@
 import sys
 import fileinput
-from Scheduler import Scheduler
+from Scheduler_t import Scheduler_t
 
 #constants:
 MODE_A = "-a"
@@ -22,7 +22,7 @@ def piping():
 def argument_processing(args):
 	mode = -1
 	if len(args) < 2 :
-		print_error("Use of command:\n  schedule -a/b/c < ILOC file\n")
+		print_error("Use of command:\n  schedule.py -a/b/c < ILOC file\n")
 		sys.exit()
 	print_error("------------------------------------------------\n")
 	print_error("            Instruction Scheduler\n               415:compilers\n                Spring 2022\n")
@@ -47,12 +47,12 @@ def print_instruction(ins):
 def main(args):
 	mode = argument_processing(args)
 	instructions = piping()
-	ir = Scheduler(mode, instructions)
+	ir = Scheduler_t(mode, instructions)
 	ir.schedule()
 
 
 
-	print_instruction(instructions)
+	print_instruction(ir.scheduled_instructions)
 	print_error("\n-----------------DONE---------------------------\n")
 
 if __name__ == "__main__":
