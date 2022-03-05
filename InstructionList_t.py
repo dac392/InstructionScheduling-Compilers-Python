@@ -16,7 +16,8 @@ class InstructionList_t:
 		self.terminal_indecies = []
 		self.path_weights = {}	# chain_index : pathweight
 		self.occurence_list = {}
-		self.scheduled = []
+		self.output_dependencies = {}
+		self.last_output = None
 
 	def add_instruction(self, raw_instruction):
 		# [inst_f, late, type]
@@ -126,7 +127,24 @@ class InstructionList_t:
 		for key,chain in self.instructions.items():
 			ptr = chain
 			while(ptr is not None):
-				if ptr.instruction in self.parser.potential_dependencies and ptr.instruction_number == self.parser.potential_dependencies[ptr.instruction][1]:
+				if ptr.type == "io" and self.last_output is None:
+					#print(f"{ptr.instruction_number} : {ptr.instruction} is being stored in output dependencies")
+					out_info = [ptr.instruction_number, ptr.instruction, key]
+					self.last_output =  out_info
+					# [num, inst, chain_index]
+				elif ptr.type == "io" and self.last_output is not None:
+					#print(f"{ptr.instruction_number} : {ptr.instruction} comes after something else")
+					before = self.last_output
+					bef_num = before.pop(0)
+					bef_ins = before.pop(0)
+					bef_chain = before.pop(0)
+					anti_info = [bef_ins, bef_chain, ptr.instruction, [key], ptr.instruction_number]
+					#print(f"{ptr.instruction_number} : {anti_info} is a dependency")
+					self.output_dependencies.update({bef_num : anti_info})
+					self.last_output = [ptr.instruction_number, ptr.instruction, key]
+
+				elif ptr.instruction in self.parser.potential_dependencies and ptr.instruction_number == self.parser.potential_dependencies[ptr.instruction][1]:
+					
 					dep_info = self.parser.potential_dependencies[ptr.instruction]
 					ptr_inst = ptr.instruction
 					ptr_numb = ptr.instruction_number
@@ -139,6 +157,7 @@ class InstructionList_t:
 						# print(f"dep: {dep_inst} @ {dep_numb} in chain {dep_chain}")
 						# print("WE ADDED")
 						if ptr_numb not in self.anti_dependencies:
+							#print(f"{ptr.instruction_number} : regular old dependency")
 							anti_info = [ptr_inst, ptr_chain, dep_inst, dep_chain, dep_numb]
 							dep_info.append(dep_chain)
 							self.anti_dependencies.update({ptr_numb : anti_info})
@@ -147,6 +166,12 @@ class InstructionList_t:
 				ptr = ptr.next
 		# self.find_weights()
 		#print(self.anti_dependencies)
+		out_keys = list(self.output_dependencies.keys())
+		while out_keys:
+			next_key = max(out_keys)
+			self.adjust_outputs(next_key)
+			out_keys.pop(out_keys.index(next_key))
+
 		done_chains = []
 		next_chain_count = 0
 		while next_chain_count < len(self.instructions):
@@ -160,6 +185,26 @@ class InstructionList_t:
 		#print()
 		#self.weight_test()
 		#print()
+	def adjust_outputs(self, inst_num):
+		info = self.output_dependencies[inst_num]
+		bef_ins = info[0]
+		bef_num = inst_num
+		bef_chain = info[1]
+		aft_ins = info[2]
+		aft_chain = info[3][0]
+		aft_num = info[4]
+		ptr = self.instructions[bef_chain]
+		while(ptr is not None):
+			if ptr.instruction_number == bef_num:
+				after_weight = self.get_weight_latency(aft_chain, aft_num)
+				before_weight = self.get_weight_latency(bef_chain, bef_num)
+				fix_value = after_weight[0] - before_weight[0]
+				ptr.fix_latency = fix_value+before_weight[1]
+				update_chains = self.instruction_lookup[bef_num]
+				for i in update_chains:
+					self.path_weights[i]+=ptr.fix_latency
+			ptr = ptr.next
+
 	def adjust_path_weights(self, chain_index, done_chains):
 		if chain_index in done_chains:
 			return
@@ -203,44 +248,6 @@ class InstructionList_t:
 			if dep_chain == inst_chain:	# if target_chain actually depends on something else
 				return True
 		return False
-
-	#deprecated =====
-	def adjust_path_weights_d(self):
-		has_anti = [self.anti_dependencies[depend][3][0] for depend in self.anti_dependencies]
-		#print(f"has anti: {has_anti}\n")
-		for inst, dep_info in self.anti_dependencies.items():
-			#print(f"inst: {inst} with {dep_info}")
-			lhs_inst = inst 
-			lhs_numb = dep_info[1]
-			lhs_chain = self.instruction_lookup[lhs_numb]
-			lhs_weight = self.get_weight_latency(lhs_chain[0], lhs_numb)
-			dep_inst = dep_info[0]
-			dep_numb = dep_info[2]
-			dep_chain = dep_info[3]
-			dep_weight = self.get_weight_latency(dep_chain[0], dep_numb)
-			#print(f"{lhs_inst} weight({lhs_weight[0]}) && {dep_inst} weight({dep_weight[0]})")
-			#print(f"dependece is {lhs_weight[0] < dep_weight[0]}")
-			if lhs_weight[0] < dep_weight[0]:
-				fix_value = dep_weight[0] - lhs_weight[0]
-				ptr = self.instructions[lhs_chain[0]]
-				while ptr is not None:
-					if ptr.instruction_number == lhs_numb:
-						ptr.fix_latency = fix_value+lhs_weight[1]
-						#print(f"adjusted {lhs_numb}:{lhs_inst} to weight {ptr.fix_latency}")
-						update_chains = self.instruction_lookup[ptr.instruction_number]
-						for i in update_chains:
-							self.path_weights[i]+=ptr.fix_latency
-
-						#print(f"adjusted {lhs_inst} @chain {lhs_chain} number {lhs_numb}\n")
-						break
-					ptr = ptr.next
-		highest_weight_index = max(self.path_weights, key=self.path_weights.get)
-		highest_weight = self.path_weights[highest_weight_index]
-		self.path_weights.update({0 : highest_weight+1})
-		self.instructions[0].fix_latency = highest_weight
-		# print()
-		# print(self.path_weights)
-		# print()
 
 	def can_continue(self):
 		for key in self.path_weights:
