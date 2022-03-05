@@ -49,7 +49,7 @@ class Scheduler_t:
 			if we_scheduled:
 				self.scheduled_instructions.append(instruction.pop(0))
 			print()
-			if not IL.can_continue()or cycle > 32:
+			if not IL.can_continue():
 				print(f"finished in {cycle} cycles")
 				IL.print_instructions(optimal_path)
 				return cycle

@@ -101,6 +101,30 @@ class InstructionList_t:
 					self.occurence_list.update({ptr.instruction_number : 1})
 				ptr = ptr.next
 
+	def weight_test(self):
+		print_statement = []
+		
+
+		path_weights = self.path_weights.copy()
+		print(path_weights)
+
+		for chain_index, chain in self.instructions.items():
+			ptr = chain
+			individual = []
+
+			while(ptr is not None):
+				w = path_weights[chain_index]
+				individual.append(str(w))
+				
+				path_weights[chain_index]-=ptr.get_latency()
+				ptr = ptr.next
+
+			string = " --> ".join(individual)
+			print_statement.append(string)
+				
+
+		for index,value in enumerate(print_statement):
+			print(f"chain_index {index} : {value}")
 
 	def find_anti_dependence(self):
 		self.decide_lookup()
@@ -129,6 +153,9 @@ class InstructionList_t:
 		# self.find_weights()
 		print(self.anti_dependencies)
 		self.adjust_path_weights()
+		print()
+		self.weight_test()
+		print()
 
 	def adjust_path_weights(self):
 		for inst, dep_info in self.anti_dependencies.items():
@@ -149,7 +176,7 @@ class InstructionList_t:
 				while ptr is not None:
 					if ptr.instruction_number == lhs_numb:
 						ptr.fix_latency = fix_value+lhs_weight[1]
-						print(f"adjusted {lhs_inst} to weight {ptr.fix_latency}")
+						print(f"adjusted {lhs_numb}:{lhs_inst} to weight {ptr.fix_latency}")
 						update_chains = self.instruction_lookup[ptr.instruction_number]
 						for i in update_chains:
 							self.path_weights[i]+=ptr.fix_latency
@@ -158,8 +185,8 @@ class InstructionList_t:
 						break
 					ptr = ptr.next
 		highest_weight_index = max(self.path_weights, key=self.path_weights.get)
-		highest_weight = self.path_weights[highest_weight_index]+1
-		self.path_weights.update({0 : highest_weight})
+		highest_weight = self.path_weights[highest_weight_index]
+		self.path_weights.update({0 : highest_weight+1})
 		self.instructions[0].fix_latency = highest_weight
 		print()
 		print(self.path_weights)
