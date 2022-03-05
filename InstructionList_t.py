@@ -61,16 +61,16 @@ class InstructionList_t:
 		list_of_chain_indecies = []
 		highest_weight_index = max(self.path_weights, key=self.path_weights.get)
 		highest_weight = self.path_weights[highest_weight_index]
-		print(f"highest_weight_index: {highest_weight_index}")
-		print(f"highest_weight: {highest_weight}")
-		print(f"highest_weight_index is not in ready: {highest_weight_index not in ready}")
+		# print(f"highest_weight_index: {highest_weight_index}")
+		# print(f"highest_weight: {highest_weight}")
+		# print(f"highest_weight_index is not in ready: {highest_weight_index not in ready}")
 		if highest_weight_index not in ready:
 			for index, weight in self.path_weights.items():
-				print(f"{index} : {weight} cmp({highest_weight})")
+				# print(f"{index} : {weight} cmp({highest_weight})")
 				if weight == highest_weight and index in ready:
 					return index
-		print(f"ready: {ready}")
-		print(f"weights: {self.path_weights}")
+		# print(f"ready: {ready}")
+		# print(f"weights: {self.path_weights}")
 		return highest_weight_index
 
 	def get_occurence(self, inst_num):
@@ -82,7 +82,7 @@ class InstructionList_t:
 
 	def converges_at(self, inst_numb):
 		if len(self.instruction_lookup[inst_numb]) > 1:
-			print(f"Converges bc : {len(self.instruction_lookup[inst_numb])}")
+			# print(f"Converges bc : {len(self.instruction_lookup[inst_numb])}")
 			return True
 		return False 
 
@@ -106,7 +106,7 @@ class InstructionList_t:
 		
 
 		path_weights = self.path_weights.copy()
-		print(path_weights)
+		# print(path_weights)
 
 		for chain_index, chain in self.instructions.items():
 			ptr = chain
@@ -123,8 +123,8 @@ class InstructionList_t:
 			print_statement.append(string)
 				
 
-		for index,value in enumerate(print_statement):
-			print(f"chain_index {index} : {value}")
+		# for index,value in enumerate(print_statement):
+			# print(f"chain_index {index} : {value}")
 
 	def find_anti_dependence(self):
 		self.decide_lookup()
@@ -132,7 +132,6 @@ class InstructionList_t:
 		for key,chain in self.instructions.items():
 			ptr = chain
 			while(ptr is not None):
-
 				if ptr.instruction in self.parser.potential_dependencies and ptr.instruction_number == self.parser.potential_dependencies[ptr.instruction][1]:
 					dep_info = self.parser.potential_dependencies[ptr.instruction]
 					ptr_inst = ptr.instruction
@@ -151,11 +150,11 @@ class InstructionList_t:
 
 				ptr = ptr.next
 		# self.find_weights()
-		print(self.anti_dependencies)
+		# print(self.anti_dependencies)
 		self.adjust_path_weights()
-		print()
+		# print()
 		self.weight_test()
-		print()
+		# print()
 
 	def adjust_path_weights(self):
 		for inst, dep_info in self.anti_dependencies.items():
@@ -168,15 +167,15 @@ class InstructionList_t:
 			dep_numb = dep_info[2]
 			dep_chain = dep_info[3]
 			dep_weight = self.get_weight_latency(dep_chain[0], dep_numb)
-			print(f"{lhs_inst} weight({lhs_weight[0]}) && {dep_inst} weight({dep_weight[0]})")
-			print(f"dependece is {lhs_weight[0] < dep_weight[0]}")
+			# print(f"{lhs_inst} weight({lhs_weight[0]}) && {dep_inst} weight({dep_weight[0]})")
+			# print(f"dependece is {lhs_weight[0] < dep_weight[0]}")
 			if lhs_weight[0] < dep_weight[0]:
 				fix_value = dep_weight[0] - lhs_weight[0]
 				ptr = self.instructions[lhs_chain[0]]
 				while ptr is not None:
 					if ptr.instruction_number == lhs_numb:
 						ptr.fix_latency = fix_value+lhs_weight[1]
-						print(f"adjusted {lhs_numb}:{lhs_inst} to weight {ptr.fix_latency}")
+						# print(f"adjusted {lhs_numb}:{lhs_inst} to weight {ptr.fix_latency}")
 						update_chains = self.instruction_lookup[ptr.instruction_number]
 						for i in update_chains:
 							self.path_weights[i]+=ptr.fix_latency
@@ -188,9 +187,9 @@ class InstructionList_t:
 		highest_weight = self.path_weights[highest_weight_index]
 		self.path_weights.update({0 : highest_weight+1})
 		self.instructions[0].fix_latency = highest_weight
-		print()
-		print(self.path_weights)
-		print()
+		# print()
+		# print(self.path_weights)
+		# print()
 
 	def can_continue(self):
 		for key in self.path_weights:

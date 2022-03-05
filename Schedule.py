@@ -48,10 +48,8 @@ def main(args):
 	mode = argument_processing(args)
 	instructions = piping()
 	ir = Scheduler_t(mode, instructions)
-	ir.schedule()
-
-
-
+	cycle = ir.schedule()
+	print_error(f"finished in {cycle} cycles\n")
 	print_instruction(ir.scheduled_instructions)
 	print_error("\n-----------------DONE---------------------------\n")
 
