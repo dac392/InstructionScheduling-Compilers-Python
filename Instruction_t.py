@@ -18,7 +18,7 @@ class Instruction_t:
 		return self.instruction.split(" ")[1]
 	def get_latency(self):
 		if self.fix_latency > 0:
-			return self.fix_latency
+			return self.fix_latency+self.base_latency
 		return self.base_latency
 	def is_leaf(self):
 		ins = self.get_keyword()
