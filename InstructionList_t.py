@@ -32,8 +32,8 @@ class InstructionList_t:
 		else:
 			chain_keys = self.parser.find_branches(new_instruction.get_instruction())
 			self.io_check(chain_keys, new_instruction)
-			if new_instruction.type == "io":
-				print(f"chain_keys: {chain_keys} for instructions {new_instruction.instruction_number}")
+			#if new_instruction.type == "io":
+				# print(f"chain_keys: {chain_keys} for instructions {new_instruction.instruction_number}")
 			for key in chain_keys:
 				pointer = self.instructions[key]
 				prev = None
@@ -76,9 +76,9 @@ class InstructionList_t:
 				for i in arr:
 					if i != main_chain:
 						self.path_weights[i] += 1
-						
+
 				self.all_output_chains.append(main_chain)
-				print(f"other indecies that need to be fixed: {arr}")
+				# print(f"other indecies that need to be fixed: {arr}")
 			#print(f"--all outputchains: {self.all_output_chains}")
 			return True
 		return False
@@ -171,7 +171,7 @@ class InstructionList_t:
 
 
 	def anti_dependence_weight_fix(self):
-		print(f"first time wights: {self.path_weights}")
+		# print(f"first time wights: {self.path_weights}")
 		done_chains = []
 		next_chain_count = 0
 		while next_chain_count < len(self.instructions):
@@ -183,39 +183,8 @@ class InstructionList_t:
 		self.path_weights.update({0 : highest_weight+1})
 		self.instructions[0].fix_latency = highest_weight
 		#print()
-		self.weight_test()
+		#self.weight_test()
 		#print()		
-
-	# def a_adjust_path_weights(self, chain_index, done_chains):
-	# 	if chain_index in done_chains:
-	# 		return
-	# 	if chain_index in self.anti_dependent_chains:
-	# 		recurse_chain = self.anti_dependent_chains[chain_index]
-	# 		self.adjust_path_weights(recurse_chain, done_chains)
-
-	# 	pointer = self.instructions[chain_index]
-	# 	chain_weight = 0
-	# 	while pointer is not None:
-	# 		ptr_inst_num = pointer.instruction_number
-	# 		ptr_ins = ptr.instruction
-	# 		if ptr_inst_num in self.anti_dependencies:
-	# 			after = self.anti_dependencies[ptr_num]
-	# 			after_ins = after[2]
-	# 			after_chain = after[3][0]	# array of size one? always?
-	# 			after_num = after[4]
-	# 			after_weight = self.get_weight_latency(after_chain, after_num)
-	# 			before_weight = self.get_weight_latency(chain_index, ptr_num)
-	# 			if before_weight[0] < after_weight[0]:
-	# 				fix_value = after_weight[0] - before_weight[0]
-	# 				ptr.fix_latency = fix_value+before_weight[1]
-	# 				update_chains = self.instruction_lookup[ptr_num]
-	# 				# might be over counting
-	# 				for i in update_chains:
-	# 					self.path_weights[i]+=ptr.fix_latency
-	# 		chain_weight += pointer.get_latency()
-
-	# 		pointer = pointer.next
-
 
 	def adjust_path_weights(self, chain_index, done_chains):
 		if chain_index in done_chains:

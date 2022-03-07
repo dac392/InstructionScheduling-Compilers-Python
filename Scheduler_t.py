@@ -50,7 +50,7 @@ class Scheduler_t:
 			# print()
 			if not IL.can_continue():
 				# print(f"finished in {cycle} cycles")
-				IL.print_instructions(optimal_path)
+				#IL.print_instructions(optimal_path)
 				return cycle
 
 			cycle+=1
