@@ -23,6 +23,7 @@ class InstructionList_t:
 
 	def get_instructino_branch(self, new_instruction):
 		all_chains = self.parser.find_branches(new_instruction.get_instruction())
+		all_chains.sort()
 		inst_num = new_instruction.instruction_number
 		# Single instruction:
 		if len(all_chains) == 1:
@@ -35,6 +36,8 @@ class InstructionList_t:
 		#print(f"chain_tracker: {self.chain_tracker}")
 		state = []
 		merge_point = all_chains[0]
+		# chain_traker_keys = self.chain_tracker.keys()
+		# chain_traker_vals = self.chain_tracker.vals()
 		for i in all_chains:
 			# if i not in self.chain_tracker:
 
@@ -50,6 +53,7 @@ class InstructionList_t:
 
 	def add_instruction(self, raw_instruction):
 		# [inst_f, late, type]
+		# print(f"instruction_number {self.inst_counter}: {raw_instruction} ")
 		inst_info = self.parser.parse_instruction(raw_instruction, self.inst_counter)
 		new_instruction = Instruction_t(inst_info[0], self.inst_counter, inst_info[1], inst_info[2])
 		if new_instruction.is_leaf():
@@ -64,10 +68,11 @@ class InstructionList_t:
 			self.io_check(chain_keys, new_instruction)
 
 			#if new_instruction.type == "io":
-			#print(f"chain_keys: {chain_keys} for instructions {new_instruction.instruction_number}")
+			# print(f"chain_keys: {chain_keys} for instructions {new_instruction.instruction_number}")
 			for key in chain_keys:
 				pointer = self.instructions[key]
 				while pointer.next is not None:
+					#print(f"chain {key} im looking at: {pointer.instruction_number}")
 					pointer = pointer.next
 				# print(f"currently adding instruction {new_instruction.instruction_number} to chain {key}")
 				self.path_weights[key]+=new_instruction.get_latency()

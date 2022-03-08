@@ -16,7 +16,8 @@ def piping():
 			line = input()
 		except EOFError:
 			break
-		contents.append(line)
+		if len(line.strip()):
+			contents.append(line)
 	return contents
 
 def argument_processing(args):
