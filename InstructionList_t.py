@@ -31,9 +31,13 @@ class InstructionList_t:
 			return all_chains
 
 		# More than one. Must return list of size 2
+		#print(f"all chains: {all_chains}")
+		#print(f"chain_tracker: {self.chain_tracker}")
 		state = []
 		merge_point = all_chains[0]
 		for i in all_chains:
+			# if i not in self.chain_tracker:
+
 			chain_index = self.chain_tracker[i]
 			if chain_index not in state:
 				state.append(chain_index)
@@ -53,13 +57,14 @@ class InstructionList_t:
 			self.path_weights.update( {self.total_line_counter : new_instruction.get_latency()})
 			self.parser.update_registers(new_instruction.get_writable(), [self.total_line_counter])
 			self.instruction_lookup.update({new_instruction.instruction_number : self.total_line_counter})
+			self.chain_tracker.update({self.total_line_counter : self.total_line_counter})
 			self.total_line_counter+=1 # THIS MUST BE THE LAST LINE
 		else:
 			chain_keys = self.get_instructino_branch(new_instruction)
 			self.io_check(chain_keys, new_instruction)
 
 			#if new_instruction.type == "io":
-			# print(f"chain_keys: {chain_keys} for instructions {new_instruction.instruction_number}")
+			#print(f"chain_keys: {chain_keys} for instructions {new_instruction.instruction_number}")
 			for key in chain_keys:
 				pointer = self.instructions[key]
 				while pointer.next is not None:
