@@ -15,9 +15,10 @@ class Scheduler_t:
 		IL = InstructionList_t()
 		for line in self.raw_instructions:
 			IL.add_instruction(line)
-		# print(f"all output chains: {IL.all_output_chains}")
 		IL.find_anti_dependence()
 		IL.anti_dependence_weight_fix();
+		# IL.print_instructions([])
+		# IL.weight_test()
 
 		was_seen = {}	# {inst_num : times_seen}
 		cycle = 0
