@@ -215,6 +215,7 @@ class InstructionList_t:
 
 
 	def resolve_anti_weight(self, inst_chain, done):
+
 		if inst_chain in done:
 			return 0
 
@@ -228,8 +229,9 @@ class InstructionList_t:
 				aft_info = self.anti_dependencies[ptr_num]
 				aft_chain = aft_info[3]
 				aft_num = aft_info[4]
-				if aft_num in self.anti_dependencies:
-					resolve_anti_weight(aft_chain, done)
+				if aft_num in self.anti_dependencies or aft_chain in self.anti_dependent_chains:
+					self.resolve_anti_weight(aft_chain, done)
+
 				after_weight = self.get_weight_latency(aft_chain, aft_num)
 				before_weight = self.get_weight_latency(inst_chain, ptr_num)
 				if before_weight[0] < after_weight[0]:
@@ -344,8 +346,8 @@ class InstructionList_t:
 			chain_string.append("Null")
 			s = "---> ".join(chain_string)
 			print(str(key)+": "+s)
-		print(self.path_weights)
-		print(self.anti_dependencies)
+		print(f"path weights: {self.path_weights}")
+		print(f"anti dependencies: {self.anti_dependencies}")
 		#optimal_path.sort()
 		print(f"optimal_path: {optimal_path}")
 		print("------------------end------------------")
