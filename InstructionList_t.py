@@ -23,24 +23,25 @@ class InstructionList_t:
 
 	def get_instructino_branch(self, new_instruction):
 		all_chains = self.parser.find_branches(new_instruction.get_instruction())
+		self.io_check(all_chains, new_instruction)
 		all_chains.sort()
 		inst_num = new_instruction.instruction_number
 		# Single instruction:
 		if len(all_chains) == 1:
-			self.chain_tracker.update({all_chains[0] : all_chains[0]})
-			self.instruction_lookup.update({inst_num : all_chains[0]})
-			return all_chains
+			if all_chains[0] not in self.chain_tracker:
+				self.chain_tracker.update({all_chains[0] : all_chains[0]})
+				self.instruction_lookup.update({inst_num : all_chains[0]})
+				return all_chains
+			if inst_num not in self.instruction_lookup:
+				self.instruction_lookup.update({inst_num : all_chains[0]})
+			
+			return [self.chain_tracker[all_chains[0]]]
 
 		# More than one. Must return list of size 2
-		#print(f"all chains: {all_chains}")
-		#print(f"chain_tracker: {self.chain_tracker}")
 		state = []
 		merge_point = all_chains[0]
-		# chain_traker_keys = self.chain_tracker.keys()
-		# chain_traker_vals = self.chain_tracker.vals()
 		for i in all_chains:
 			# if i not in self.chain_tracker:
-
 			chain_index = self.chain_tracker[i]
 			if chain_index not in state:
 				state.append(chain_index)
@@ -53,7 +54,7 @@ class InstructionList_t:
 
 	def add_instruction(self, raw_instruction):
 		# [inst_f, late, type]
-		# print(f"instruction_number {self.inst_counter}: {raw_instruction} ")
+		#print(f"instruction_number {self.inst_counter}: {raw_instruction} ")
 		inst_info = self.parser.parse_instruction(raw_instruction, self.inst_counter)
 		new_instruction = Instruction_t(inst_info[0], self.inst_counter, inst_info[1], inst_info[2])
 		if new_instruction.is_leaf():
@@ -65,7 +66,7 @@ class InstructionList_t:
 			self.total_line_counter+=1 # THIS MUST BE THE LAST LINE
 		else:
 			chain_keys = self.get_instructino_branch(new_instruction)
-			self.io_check(chain_keys, new_instruction)
+			# self.io_check(chain_keys, new_instruction)
 
 			#if new_instruction.type == "io":
 			# print(f"chain_keys: {chain_keys} for instructions {new_instruction.instruction_number}")
@@ -80,7 +81,7 @@ class InstructionList_t:
 				# pointer = pointer.next
 
 				is_output = self.output_check(new_instruction, key, chain_keys)
-				# self.print_instructions([])
+				#self.print_instructions([])
 		# exiting statements
 		#print()
 		
@@ -103,7 +104,13 @@ class InstructionList_t:
 
 			if main_chain not in self.previous_output:
 				self.previous_output.append(main_chain)
+				
+			# for index,i in enumerate(self.all_output_chains):
+			# 	if i != self.chain_tracker[i]:
+			# 		self.all_output_chains[index] = self.chain_tracker[i]
+			
 			if main_chain not in self.all_output_chains:
+				#print(f"{main_chain} is not in {self.all_output_chains}")
 				arr = []
 				for i in self.all_output_chains:
 					if i not in chain_keys:
