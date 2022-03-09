@@ -8,7 +8,7 @@ class Scheduler_t:
 
 
 	def schedule(self):
-		execute = {"-a":self.longest_latency, "-b":self.highest_latency, "-c":self.first_come_first_served};
+		execute = {"-a":self.longest_latency, "-b":self.highest_latency, "-c":self.highest_descendent};
 		statement = execute[self.mode]()
 		return statement
 
@@ -127,32 +127,31 @@ class Scheduler_t:
 			cycle += 1
 
 	# should try to better compile time
-	def first_come_first_served(self):
+	def highest_descendent(self):
 		IL = InstructionList_t()
 		for line in self.raw_instructions:
 			IL.add_instruction(line)
 		IL.find_anti_dependence()
 		IL.anti_dependence_weight_fix();
 
-
-		#was_seen = {}	# {inst_num : times_seen}
 		cycle = 0
 		ready = self.init_ready(IL) # {chain_index : chain}
-		HL_t = Heuristics_t(ready,IL)
 		active = {}	# {time : [chain, chain_index]}
+		MD_t = Heuristics_t(ready,IL)
+		MD_t.init_most_descendents(IL, ready)
 
 		while True:
 			#print(f"cycle: {cycle}")
-			HL_t.move_to_ready(cycle, active, ready)
-			next_chain = HL_t.get_next_highest_latency_instruction(ready)
+			MD_t.move_to_ready(cycle, active, ready)
+			next_chain = MD_t.get_highest_descendent(ready)
 			#print(f"chain that we setled on: {next_chain}\n")
 			if next_chain > -1:
-				scheduled = HL_t.move_to_active(cycle, next_chain, ready, active)
+				scheduled = MD_t.move_to_active(cycle, next_chain, ready, active)
 				self.scheduled_instructions.append(scheduled)
 			
-			if  HL_t.has_finished(ready, active):
-				#print(f"occurences: {HL_t.occurence_list}")
-				#print(f"path: {HL_t.scheduled_tracker}")
+			if  MD_t.has_finished(ready, active):
+				#print(f"occurences: {MD_t.occurence_list}")
+				#print(f"path: {MD_t.scheduled_tracker}")
 				return cycle+1
 			cycle += 1
 

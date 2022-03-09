@@ -1,4 +1,4 @@
-class HighestLatency_t:
+class Heuristics_t:
 	def __init__(self, ready, IL):
 		self.ready_instructions = self.init_ready_tracker(ready)		# {instruction : count}
 			# ^ make sure that you only add at most 2 chains with the same instruction number.
@@ -6,14 +6,18 @@ class HighestLatency_t:
 		self.instruction_positions = self.init_ready_positions(ready)	# {instruction : [chain]}
 		self.ready_latencies = self.init_ready_latencies(ready)			# {instruction : latency}
 		
+		self.most_descendents = {}										# {chain : descendent_count}
+		self.ready_descendent_tracker = {}								# {chain : descendent_count}
+		self.merge_point_lookup = {}	# theory crafting
+		self.second_heuristic = False
 		# should never be touched
 		self.anti_dependence = self.init_anti_dependence(IL)			# {after : before}
 		self.occurence_list = self.init_occurence_list(IL)				# {instruction : count}
 		self.scheduled_tracker = []
-		# self.total_feasible_chain = len(IL.instructions) - 1 probably not needed
 
 
 
+	# HighestLatency
 	def get_next_highest_latency_instruction(self, ready):
 		if 1 in self.ready_instructions:
 			return 0
@@ -55,6 +59,10 @@ class HighestLatency_t:
 		self.instruction_positions.pop(instruction)
 		self.ready_latencies.pop(instruction)
 		self.scheduled_tracker.append(instruction)
+		if self.second_heuristic:
+			self.most_descendents[next_chain]-=1
+			self.ready_descendent_tracker.pop(next_chain)
+			# self.merge_point_lookup.pop(instruction)	we'll see about this
 
 		return ready_instruction.instruction
 	def move_to_ready(self, cycle, active, ready):
@@ -66,7 +74,7 @@ class HighestLatency_t:
 					continue
 				chain_index = cluster[1]
 				instruction = chain.instruction_number
-				if self.can_be_made_ready(instruction):
+				if self.can_be_made_ready(instruction, chain_index):
 					late = chain.get_latency()
 					ready.update({chain_index : chain})
 					self.instruction_positions.update({instruction : [chain_index]})
@@ -76,10 +84,16 @@ class HighestLatency_t:
 					else:
 						self.ready_instructions[instruction]+=1
 
+					if self.second_heuristic:
+						self.ready_descendent_tracker.update({chain_index : self.most_descendents[chain_index]})
 
-	def can_be_made_ready(self, instruction):
+
+	def can_be_made_ready(self, instruction, chain_index):
 		total_occurence = self.occurence_list[instruction]
 		if instruction in self.scheduled_tracker:
+			return False
+
+		if self.second_heuristic and chain_index not in self.merge_point_lookup[instruction]:
 			return False
 
 		if total_occurence == 1 and instruction not in self.ready_instructions:
@@ -94,18 +108,108 @@ class HighestLatency_t:
 
 	def remove_additional_instruction(self, ready, instruction):
 		if self.occurence_list[instruction] > 1:
-			#print(self.instruction_positions)
-			posible_chains = self.instruction_positions[instruction]
+			posible_chains = None
+			if self.second_heuristic:
+				posible_chains = self.merge_point_lookup[instruction]
+			else:
+				posible_chains = self.instruction_positions[instruction]
 			for chain_index in posible_chains:
 				if chain_index in ready:
 					ready.pop(chain_index)
-
+					if self.second_heuristic:
+						self.ready_descendent_tracker.pop(chain_index)
+						self.most_descendents.pop(chain_index)	# we'll see about this one
 
 	def has_finished(self, ready, active):
 		if not bool(ready) and not bool(active):
 			return True
 		return False
 
+
+
+	# Most Successors
+	def init_most_descendents(self, IL, ready):
+		self.second_heuristic = True
+		for chain_index, chain in IL.instructions.items():
+			ptr = chain
+			while ptr is not None:
+				if chain_index not in self.most_descendents:
+					self.most_descendents.update({chain_index : 1})
+				else:
+					self.most_descendents[chain_index]+=1
+				ptr = ptr.next
+		self.init_ready_descendents(ready)
+		self.init_merge_point_lookup(IL)
+
+	def init_ready_descendents(self, ready):
+		for chain_index, chain in ready.items():
+			self.ready_descendent_tracker.update({chain_index : self.most_descendents[chain_index]})
+
+	def init_merge_point_lookup(self, IL):
+		for chain_index, chain in IL.instructions.items():
+			ptr = chain
+			while ptr is not None:
+				instruction = ptr.instruction_number
+				if instruction not in self.merge_point_lookup:
+					self.merge_point_lookup.update({instruction : [chain_index]})
+				else:
+					self.merge_point_lookup[instruction].append(chain_index)
+					break
+				ptr = ptr.next
+
+	def find_highest_descendent_chain(self):
+		keys = list(self.ready_descendent_tracker.keys())
+		keys.sort()
+		highest = 0
+		highest_chain = -1
+		for k in keys:
+			v = self.ready_descendent_tracker[k]
+			if v > highest:
+				highest = v
+				highest_chain = k
+		return highest_chain
+
+	def get_highest_descendent(self, ready):
+		if 1 in self.ready_instructions:
+			return 0
+		if not bool(ready):	# empty
+			return -1
+		#highest_chain = max(self.ready_descendent_tracker, key=self.ready_descendent_tracker.get)
+		highest_chain = self.find_highest_descendent_chain()
+		instruction = ready[highest_chain].instruction_number
+		# print(f"in theory it should be {highest_chain}")
+		if instruction in self.anti_dependence and self.anti_dependence[instruction] in self.scheduled_tracker:
+			return highest_chain
+		if self.occurence_list[instruction] == 1 or (self.occurence_list[instruction]>1 and self.ready_instructions[instruction] > 1):
+			return highest_chain
+
+		# if self.occurence_list[instruction] > 1 and self.ready_instructions[instruction] != 2:
+		# 	merge_list = self.merge_point_lookup[instruction]
+		# 	for c in merge_list:
+		# 		if c != highest_chain and c in self.ready_descendent_tracker:
+		# 			return c
+		highest = 0
+		highest_chain = -1
+		for chain_index, chain in ready.items():
+			instruction = chain.instruction_number
+			if instruction in self.anti_dependence and self.anti_dependence[instruction] not in self.scheduled_tracker: # instruction has to come before something else
+				# potential optimization, return the chain in which before is @
+				continue
+			if self.occurence_list[instruction] > 1 and self.ready_instructions[instruction] != 2:
+				continue
+			if instruction in self.scheduled_tracker:
+				print(f"Warning, instruction {instruction} should not be in ready anymore, it was already processed. we messed up")
+				continue
+
+			if self.ready_descendent_tracker[chain_index] > highest:
+				highest = self.ready_descendent_tracker[chain_index]
+				highest_chain = chain_index
+
+		return highest_chain
+
+
+
+	# utility and set up:
 	def init_ready_tracker(self, ready):
 		state ={}
 		for chain_index, chain in ready.items():
@@ -156,6 +260,7 @@ class HighestLatency_t:
 
 		# print(f"occurences: {state}")
 		return state
+
 
 
 

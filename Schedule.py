@@ -35,7 +35,7 @@ def argument_processing(args):
 		print_error("    HEUTISTIC: highest latency instruction\n\n")
 		mode = MODE_B
 	elif args[1] == "-c":
-		print_error("        HEURISTIC: my own\n\n")
+		print_error("        HEURISTIC: most descendents\n\n")
 		mode = MODE_C
 	else:
 		print_error(" INVALID HEURISTIC: Use of command:\n  schedule -a/b/c < ILOC file\n")
