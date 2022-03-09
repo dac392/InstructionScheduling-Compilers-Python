@@ -145,7 +145,9 @@ class Scheduler_t:
 				self.scheduled_instructions.append(scheduled)
 			
 			if  HL_t.has_finished(ready, active):
-				return cycle
+				#print(f"occurences: {HL_t.occurence_list}")
+				#print(f"path: {HL_t.scheduled_tracker}")
+				return cycle+1
 			cycle += 1
 
 

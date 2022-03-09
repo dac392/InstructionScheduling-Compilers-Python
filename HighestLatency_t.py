@@ -10,7 +10,7 @@ class HighestLatency_t:
 		self.anti_dependence = self.init_anti_dependence(IL)			# {after : before}
 		self.occurence_list = self.init_occurence_list(IL)				# {instruction : count}
 		self.scheduled_tracker = []
-		self.total_feasible_chain = len(IL.instructions) - 1
+		# self.total_feasible_chain = len(IL.instructions) - 1 probably not needed
 
 
 
@@ -141,31 +141,20 @@ class HighestLatency_t:
 		return state
 
 	def init_occurence_list(self, IL):
-		state = IL.occurence_list.copy()
-		possible_merge_points = self.get_multiple_occurences(IL)
-		reachable = []
+		# state = IL.occurence_list.copy()
+		state = {}
 		for chain_index, chain in IL.instructions.items():
 			ptr = chain
-			while(ptr is not None):
+			while ptr is not None:
 				instruction = ptr.instruction_number
-				if instruction in possible_merge_points:
-					if instruction not in reachable:
-						reachable.append(instruction)
+				if instruction not in state:
+					state.update({instruction : 1})
+				else:
+					state[instruction]+=1
 					break
 				ptr = ptr.next
-		true_weird_occurences = {}
-		for instruction, occurence in possible_merge_points.items():
-			if instruction in reachable:
-				state.update({instruction : occurence})
-			else:
-				state.update({instruction : 1})
-		return state
 
-	def get_multiple_occurences(self, IL):
-		state = {}
-		for instruction, occurence in IL.occurence_list.items():
-			if occurence > 1:
-				state.update({instruction : occurence})
+		# print(f"occurences: {state}")
 		return state
 
 
