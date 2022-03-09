@@ -58,31 +58,37 @@ class InstructionList_t:
 		inst_info = self.parser.parse_instruction(raw_instruction, self.inst_counter)
 		new_instruction = Instruction_t(inst_info[0], self.inst_counter, inst_info[1], inst_info[2])
 		if new_instruction.is_leaf():
-			self.instructions.update({self.total_line_counter : new_instruction})
-			self.path_weights.update( {self.total_line_counter : new_instruction.get_latency()})
-			self.parser.update_registers(new_instruction.get_writable(), [self.total_line_counter])
-			self.instruction_lookup.update({new_instruction.instruction_number : self.total_line_counter})
-			self.chain_tracker.update({self.total_line_counter : self.total_line_counter})
-			self.total_line_counter+=1 # THIS MUST BE THE LAST LINE
+			self.add_as_leaf(new_instruction)
 		else:
 			chain_keys = self.get_instructino_branch(new_instruction)
-			# print(f"chain_keys: {chain_keys} for instructions {new_instruction.instruction_number}")
-			for key in chain_keys:
-				pointer = self.instructions[key]
-				while pointer.next is not None:
-					#print(f"chain {key} im looking at: {pointer.instruction_number}")
-					# getting stuck means get_instruction_branch is wrong
-					pointer = pointer.next
-				# print(f"currently adding instruction {new_instruction.instruction_number} to chain {key}")
-				self.path_weights[key]+=new_instruction.get_latency()
-				pointer.next = new_instruction
+			if chain_keys[0] == -1:
+				self.add_as_leaf(new_instruction)
+			else:
+				# print(f"chain_keys: {chain_keys} for instructions {new_instruction.instruction_number}")
+				for key in chain_keys:
+					pointer = self.instructions[key]
+					while pointer.next is not None:
+						#print(f"chain {key} im looking at: {pointer.instruction_number}")
+						# getting stuck means get_instruction_branch is wrong
+						pointer = pointer.next
+					# print(f"currently adding instruction {new_instruction.instruction_number} to chain {key}")
+					self.path_weights[key]+=new_instruction.get_latency()
+					pointer.next = new_instruction
 
-				is_output = self.output_check(new_instruction, key, chain_keys)
-				#self.print_instructions([])
+					is_output = self.output_check(new_instruction, key, chain_keys)
+					#self.print_instructions([])
 
 		# exiting statements
 		self.parser.find_potential_anti(new_instruction.instruction, new_instruction.instruction_number)
 		self.inst_counter+=1
+
+	def add_as_leaf(self, new_instruction):
+		self.instructions.update({self.total_line_counter : new_instruction})
+		self.path_weights.update( {self.total_line_counter : new_instruction.get_latency()})
+		self.parser.update_registers(new_instruction.get_writable(), [self.total_line_counter])
+		self.instruction_lookup.update({new_instruction.instruction_number : self.total_line_counter})
+		self.chain_tracker.update({self.total_line_counter : self.total_line_counter})
+		self.total_line_counter+=1 # THIS MUST BE THE LAST LINE
 
 	def io_check(self, chain_keys, new_instruction):
 		if new_instruction.type=="io" and self.previous_output:

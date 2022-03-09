@@ -25,7 +25,10 @@ class Parser_t:
 			branch_index = self.register_lookup[readable]
 			#print(f"from parse: {branch_index}")
 			return branch_index
-		
+		known = re.search(r"r\d*,r\d*", readable)
+		if not known:
+			return [-1]
+
 		csv = readable.split(",")
 		# if its not a typo:
 			# make it an anti dependence
