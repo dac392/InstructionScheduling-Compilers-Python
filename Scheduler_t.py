@@ -1,4 +1,5 @@
 from InstructionList_t import InstructionList_t
+from HighestLatency_t import HighestLatency_t
 class Scheduler_t:
 	def __init__ (self, mode, instructions):
 		self.mode = mode
@@ -72,9 +73,6 @@ class Scheduler_t:
 		#ready:: {chain_index : next_node}
 
 	def move_to_hold(self, next_chain, ready, hold, was_seen,IL):
-		# if IL.instructions[next_chain].out_order != self.proper_out:
-		# 	return False
-
 		# if next_chain in ready or next_chain in hold:
 		next_inst_num = ready[next_chain].instruction_number if next_chain in ready else hold[next_chain].instruction_number
 		
@@ -125,7 +123,32 @@ class Scheduler_t:
 			ready.update({chain_index : chain})
 		return ready
 	def highest_latency(self):
-		print("B")
+		IL = InstructionList_t()
+		for line in self.raw_instructions:
+			IL.add_instruction(line)
+		IL.find_anti_dependence()
+		IL.anti_dependence_weight_fix();
+
+		#was_seen = {}	# {inst_num : times_seen}
+		cycle = 0
+		ready = self.init_ready(IL) # {chain_index : chain}
+		HL_t = HighestLatency_t(ready,IL)
+		active = {}	# {time : [chain, chain_index]}
+
+		while True:
+			#print(f"cycle: {cycle}")
+			HL_t.move_to_ready(cycle, active, ready)
+			next_chain = HL_t.get_next_highest_latency_instruction(ready)
+			#print(f"chain that we setled on: {next_chain}\n")
+			if next_chain > -1:
+				scheduled = HL_t.move_to_active(cycle, next_chain, ready, active)
+				self.scheduled_instructions.append(scheduled)
+			
+			if  HL_t.has_finished(ready, active):
+				return cycle
+			cycle += 1
+
+
 	def my_own(self):
 		print("C")
 

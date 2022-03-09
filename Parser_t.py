@@ -27,6 +27,10 @@ class Parser_t:
 			return branch_index
 		
 		csv = readable.split(",")
+		# if its not a typo:
+			# make it an anti dependence
+			# just put the instruction in ig
+			# skip over the instruction. don't add it
 		arg1 = self.register_lookup[csv[0]]
 		arg2 = self.register_lookup[csv[1]]
 		if arg1 == arg2:

@@ -66,25 +66,21 @@ class InstructionList_t:
 			self.total_line_counter+=1 # THIS MUST BE THE LAST LINE
 		else:
 			chain_keys = self.get_instructino_branch(new_instruction)
-			# self.io_check(chain_keys, new_instruction)
-
-			#if new_instruction.type == "io":
 			# print(f"chain_keys: {chain_keys} for instructions {new_instruction.instruction_number}")
 			for key in chain_keys:
 				pointer = self.instructions[key]
 				while pointer.next is not None:
 					#print(f"chain {key} im looking at: {pointer.instruction_number}")
+					# getting stuck means get_instruction_branch is wrong
 					pointer = pointer.next
 				# print(f"currently adding instruction {new_instruction.instruction_number} to chain {key}")
 				self.path_weights[key]+=new_instruction.get_latency()
 				pointer.next = new_instruction
-				# pointer = pointer.next
 
 				is_output = self.output_check(new_instruction, key, chain_keys)
 				#self.print_instructions([])
+
 		# exiting statements
-		#print()
-		
 		self.parser.find_potential_anti(new_instruction.instruction, new_instruction.instruction_number)
 		self.inst_counter+=1
 
@@ -139,6 +135,19 @@ class InstructionList_t:
 
 		return highest_weight_index
 
+	def get_next_highest_latency(self, ready):
+		highest = 0
+		highest_chain = 0
+		for chain_index, chain in ready.items():
+			late = chain.get_latency()
+			if chain_index == 0:
+				return chain_index
+			if late > highest:
+				highest = late
+				highest_chain = chain_index
+
+		return highest_chain
+
 	def get_occurence(self, inst_num):
 		return self.occurence_list[inst_num]
 
@@ -148,13 +157,11 @@ class InstructionList_t:
 
 	def converges_at(self, inst_numb):
 		if len(self.instruction_lookup[inst_numb]) > 1:
-			# print(f"Converges bc : {len(self.instruction_lookup[inst_numb])}")
 			return True
 		return False 
 
 	def decide_lookup(self):
 		for chain_index, chain in self.instructions.items():
-			# print(f"chain_index: {chain_index}")
 			ptr = chain
 			while ptr is not None:
 				if ptr.instruction_number in self.instruction_lookup:
@@ -169,8 +176,6 @@ class InstructionList_t:
 				else:
 					self.occurence_list.update({ptr.instruction_number : 1})
 				ptr = ptr.next
-				# print(f"instruction_lookup: {self.instruction_lookup}")
-				# print(f"occurence_list: {self.occurence_list}")
 
 	def weight_test(self):
 		print_statement = []

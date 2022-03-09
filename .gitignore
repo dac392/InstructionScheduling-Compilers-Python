@@ -5,3 +5,4 @@ scratchWork.py
 *.i
 InstructionList.py
 Scheduler.py
+benchmarks/
