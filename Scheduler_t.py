@@ -1,14 +1,14 @@
 from InstructionList_t import InstructionList_t
-from HighestLatency_t import HighestLatency_t
+from Heuristics_t import Heuristics_t
 class Scheduler_t:
 	def __init__ (self, mode, instructions):
 		self.mode = mode
 		self.raw_instructions = instructions
 		self.scheduled_instructions = []
-		self.proper_out = 1
+
 
 	def schedule(self):
-		execute = {"-a":self.longest_latency, "-b":self.highest_latency, "-c":self.my_own};
+		execute = {"-a":self.longest_latency, "-b":self.highest_latency, "-c":self.first_come_first_served};
 		statement = execute[self.mode]()
 		return statement
 
@@ -29,30 +29,18 @@ class Scheduler_t:
 		instruction = []
 		optimal_path = []
 		while True:
-			# print(f"now cycle {cycle}")
 			self.move_to_ready(cycle, active, ready,IL)
 			next_chain = IL.get_next_chain(ready)	# list_of_chains_w_highest_weight
-			# print(f"hold: {hold}")
-			# print(f"ready: {ready}")
-			# print(f"active: {active}")
-			# print(f"ig we decided on chain {next_chain}")
-			# print(f"cycle {cycle} next_chain {next_chain}")
 			if next_chain in ready and not instruction:
 				instruction.append(ready[next_chain].instruction)
 				optimal_path.append(ready[next_chain].instruction_number)
-			# print(f"instruction: {instruction}")
 			we_scheduled = False
 			if next_chain in ready or next_chain in hold:
 				self.move_to_hold(next_chain, ready, hold, was_seen,IL)
-				# print(f"hold {hold}")
 				we_scheduled = self.move_to_active(next_chain, hold, was_seen, active, IL, cycle)
-				# print(f"active: {active}")
 			if we_scheduled:
 				self.scheduled_instructions.append(instruction.pop(0))
-			# print()
 			if not IL.can_continue():
-				# print(f"finished in {cycle} cycles")
-				#IL.print_instructions(optimal_path)
 				return cycle
 
 			cycle+=1
@@ -73,9 +61,7 @@ class Scheduler_t:
 		#ready:: {chain_index : next_node}
 
 	def move_to_hold(self, next_chain, ready, hold, was_seen,IL):
-		# if next_chain in ready or next_chain in hold:
 		next_inst_num = ready[next_chain].instruction_number if next_chain in ready else hold[next_chain].instruction_number
-		
 		if next_chain in ready:
 			actual_chain = ready.pop(next_chain)
 			hold.update({next_chain : actual_chain})
@@ -91,8 +77,6 @@ class Scheduler_t:
 				additional = ready.pop(index)
 				hold.update({index : additional})
 				was_seen[next_inst_num]+=1
-			# return True
-		# return False
 		
 		
 
@@ -100,8 +84,6 @@ class Scheduler_t:
 		next_inst_num = hold[next_chain].instruction_number
 		if was_seen[next_inst_num] == IL.get_occurence(next_inst_num):
 			chains_arr = [k for k in hold.keys()]
-			# if hold[chains_arr[0]].instruction_number in IL.out_nums:
-			# 	IL.fuck_it.pop(0)
 			for chain_index in chains_arr:
 				hold_chain = hold.pop(chain_index)
 				late = hold_chain.get_latency()
@@ -110,8 +92,6 @@ class Scheduler_t:
 					active[done_time].append([hold_chain, chain_index])
 				else:
 					active.update({done_time : [[hold_chain, chain_index]]})
-				#print(f"Trying to decrease index {chain_index} with mod {late}")
-				# print(f"moved {chain_index} into active")
 				IL.decrease_weight(chain_index, late)
 			return True
 		return False
@@ -122,6 +102,7 @@ class Scheduler_t:
 		for chain_index, chain in IL.instructions.items():
 			ready.update({chain_index : chain})
 		return ready
+
 	def highest_latency(self):
 		IL = InstructionList_t()
 		for line in self.raw_instructions:
@@ -129,10 +110,35 @@ class Scheduler_t:
 		IL.find_anti_dependence()
 		IL.anti_dependence_weight_fix();
 
+		cycle = 0
+		ready = self.init_ready(IL) # {chain_index : chain}
+		HL_t = Heuristics_t(ready,IL)
+		active = {}	# {time : [chain, chain_index]}
+
+		while True:
+			HL_t.move_to_ready(cycle, active, ready)
+			next_chain = HL_t.get_next_highest_latency_instruction(ready)
+			if next_chain > -1:
+				scheduled = HL_t.move_to_active(cycle, next_chain, ready, active)
+				self.scheduled_instructions.append(scheduled)
+			
+			if  HL_t.has_finished(ready, active):
+				return cycle+1
+			cycle += 1
+
+	# should try to better compile time
+	def first_come_first_served(self):
+		IL = InstructionList_t()
+		for line in self.raw_instructions:
+			IL.add_instruction(line)
+		IL.find_anti_dependence()
+		IL.anti_dependence_weight_fix();
+
+
 		#was_seen = {}	# {inst_num : times_seen}
 		cycle = 0
 		ready = self.init_ready(IL) # {chain_index : chain}
-		HL_t = HighestLatency_t(ready,IL)
+		HL_t = Heuristics_t(ready,IL)
 		active = {}	# {time : [chain, chain_index]}
 
 		while True:
@@ -149,10 +155,6 @@ class Scheduler_t:
 				#print(f"path: {HL_t.scheduled_tracker}")
 				return cycle+1
 			cycle += 1
-
-
-	def my_own(self):
-		print("C")
 
 
 
