@@ -14,8 +14,8 @@ class Parser_t:
 		self.last_read_from = {}
 
 	def update_registers(self, writable, value):
-		#print(f"registering {value}")
 		self.register_lookup.update({writable : value})
+
 	def find_branches(self, instruction_f):
 		keyword = instruction_f[0]
 		readable = instruction_f[1]
@@ -141,6 +141,24 @@ class Parser_t:
 				self.last_read_from.update({csv[1] : [instruction, order_number]})
 		#print(self.last_read_from)
 		#print()
+
+	def get_identifier(self, formated):
+		return formated.split(" ")[0]
+	def get_readable(self, formated):
+		fragment = formated.split(" ")
+		read_cluster = fragment[1]
+		if re.search(r"^r\d*,r\d*$", read_cluster):
+			state = read_cluster.split(",") 
+			return state
+		if re.search(r"^\d*$", read_cluster):
+			return [-1]
+		return [read_cluster]
+ 
+	def get_writable(self, formated):
+		fragment = formated.split(" ")
+		if fragment[0] == "outputAI":
+			return -1
+		return fragment[3]
 
 
 
