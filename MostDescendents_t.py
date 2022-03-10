@@ -30,6 +30,21 @@ class MostDescendents_t:
 				highest_chain = k
 		return highest_chain
 
+	def check_next_chain(self, highest_chain, instruction, readable, writable):
+
+		if writable not in self.lock:
+			cond = False
+			for r in readable:
+				if r == -1:
+					cond = True
+				elif r in self.lock and instruction > self.lock[r][0] and instruction<= self.lock[r][1]:
+					cond = True
+			if cond:
+				return True
+		if writable in self.lock:
+			return False
+
+		return False
 	def get_next_chain(self, ready, IL):
 		if 1 in self.ready_instructions:
 			return 0
@@ -38,31 +53,37 @@ class MostDescendents_t:
 		highest_chain = self.find_highest_descendent_chain()
 		instruction = ready[highest_chain].instruction_number
 		formated = (ready[highest_chain].instruction)
+		readable = IL.parser.get_readable(formated)
 		writable = IL.parser.get_writable(formated)
-		# #print(f"ready: {self.ready_instructions}")
-		# #print(f"occurences: {self.occurence_list}")
-		# #print(f"lock: {self.lock}")
-		# going to try not using anti dependencies to see what happens
+
 		if self.occurence_list[instruction] == 1 or (self.occurence_list[instruction]>1 and self.ready_instructions[instruction] > 1):
-			if (writable in self.lock and highest_chain == self.lock[writable]) or (writable not in self.lock):
+			if self.check_next_chain(highest_chain, instruction, readable, writable):
 				return highest_chain
 
-		highest = 0
+		highest = -1
 		highest_chain = -1
 		for chain_index, chain in ready.items():
 			instruction = chain.instruction_number
+			formated = (chain.instruction)
+			readable = IL.parser.get_readable(formated)
+			writable = IL.parser.get_writable(formated)
 
-			if (writable in self.lock and highest_chain == self.lock[writable]) and (writable not in lock):
-				# if instruction in self.anti_dependence and self.anti_dependence[instruction] not in self.scheduled_tracker: # instruction has to come before something else
-				# 	continue
-				if self.occurence_list[instruction] > 1 and self.ready_instructions[instruction] != 2:
-					continue
-				if self.ready_descendents[chain_index] > highest:
+			if self.occurence_list[instruction] > 1 and self.ready_instructions[instruction] != 2:
+				continue
+			#print(f"checking instruction {instruction} w chain_index {chain_index}: descendent_count > highest: {self.ready_descendents[chain_index] > highest}")
+
+			if self.ready_descendents[chain_index] > highest:
+				if self.check_next_chain(highest_chain, instruction, readable, writable):
 					highest = self.ready_descendents[chain_index]
 					highest_chain = chain_index
 
 		return highest_chain
 
+	def get_lock(self, writable, readable, instruction):
+		locks = self.live_ranges[writable]
+		for index, range_cluster in enumerate(locks):
+			if range_cluster[0] == instruction:
+				return self.live_ranges[writable].pop(index)
 	def move_to_active(self, cycle, next_chain, ready, active, IL):
 		ready_instruction = ready.pop(next_chain)
 		instruction = ready_instruction.instruction_number
@@ -72,28 +93,33 @@ class MostDescendents_t:
 		readable = IL.parser.get_readable(formated)
 		early_finish = False
 		if writable != -1 and writable not in self.lock:
-			live = self.live_ranges[writable].pop(0)
-			if live[0] == live[1] or live[0] == live[1]+1:
+			live_lock = self.get_lock(writable, readable, instruction)
+			if live_lock[0] == live_lock[1] or live_lock[0] == live_lock[1]+1:
 				early_finish = True
-			self.lock.update({writable : live})
-			#print(f"instruction {instruction} got the live range {live}")
+			
+			self.lock.update({writable : live_lock})
+			#print(f"instruction {instruction} got the live range {live_lock}")
 
-		#print(f"for instruction {instruction}: {formated} and writable {writable} and readable {readable}")
-		##print(f"unlock : {writable in self.lock and self.lock[writable][1] == instruction}")
-		#print(f"writable w/o unlock: {self.lock}")
+		# print(f"for instruction {instruction}: {formated} and writable {writable} and readable {readable}")
+		# print(f"unlock : {writable in self.lock and self.lock[writable][1] == instruction}")
+		# print(f"writable w/o unlock: {self.lock}")
 		for r in readable:
 			
 			if r != -1:
-				#print(f"r in lock: {r in self.lock} and lock.end == instruction: {self.lock[r][1] == instruction}")
+				# print(f"r in lock: {r in self.lock} and lock.end == instruction: {self.lock[r][1] == instruction}")
 				if r in self.lock and self.lock[r][1] == instruction:
 					self.lock.pop(r)
-					#print(f"unlocked {r}")
-					#print(f"writable w unlock: {self.lock}")
+					# print(f"unlocked {r}")
+					# print(f"writable w unlock: {self.lock}")
 			elif early_finish:
 				self.lock.pop(writable)
-				#print(f"unlocked {writable}, due to early finish")
-				#print(f"writable w unlock: {self.lock}")
-		#print()
+				# print(f"unlocked {writable}, due to early finish")
+				# print(f"writable w unlock: {self.lock}")
+		# print(f"global descendents: {self.descendents}")
+		# print(f"ready descendents: {self.ready_descendents}")
+		# print(f"occunces: {self.occurence_list}")
+		# print(f"live ranges: {self.live_ranges}")
+		# print()
 
 		self.remove_additional_instruction(ready, instruction)
 		done_cycle = cycle+self.ready_latencies[instruction]
@@ -130,7 +156,8 @@ class MostDescendents_t:
 						self.ready_instructions[instruction]+=1
 
 					self.ready_descendents.update({chain_index : self.descendents[chain_index]})
-
+			# print(f"active: {active}")
+			# print(f"ready: {self.ready_instructions}")
 
 	def can_be_made_ready(self, instruction, chain_index):
 		total_occurence = self.occurence_list[instruction]
