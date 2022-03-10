@@ -134,6 +134,10 @@ class Scheduler_t:
 		IL.find_anti_dependence()
 		IL.anti_dependence_weight_fix();
 
+		# IL.weight_test()
+		# IL.print_instructions([])
+		
+
 		cycle = 0
 		ready = self.init_ready(IL) # {chain_index : chain}
 		active = {}	# {time : [chain, chain_index]}
@@ -148,6 +152,7 @@ class Scheduler_t:
 			if next_chain > -1:
 				scheduled = MD_t.move_to_active(cycle, next_chain, ready, active)
 				self.scheduled_instructions.append(scheduled)
+				#print(f"in cycle {cycle}, scheduled {scheduled}")
 			
 			if  MD_t.has_finished(ready, active):
 				#print(f"occurences: {MD_t.occurence_list}")

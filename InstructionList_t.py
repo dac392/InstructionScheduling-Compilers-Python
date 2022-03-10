@@ -364,7 +364,7 @@ class InstructionList_t:
 			chain_string = []
 			pointer = chain
 			while pointer is not None:
-					chain_string.append(pointer.instruction)
+					chain_string.append(str(pointer.instruction_number))
 					pointer = pointer.next
 			chain_string.append("Null")
 			s = "---> ".join(chain_string)
