@@ -55,21 +55,22 @@ def main(args):
 	print_error("\n-----------------DONE---------------------------\n")
 
 def tesing_function(file_name):
-	# [mode, file]
-	modes = [MODE_A, MODE_B, MODE_C]
-	for mode in modes:
-		instructions = []
-		with open(file_name) as f:
-		    instructions = f.readlines()
-		ir = Scheduler_t(mode, instructions)
-		cycle = ir.schedule()
-		# print_error()
-		scheduled = "".join(ir.scheduled_instructions)
+    modes = [MODE_A, MODE_B, MODE_C]
+    count = 1
+    for mode in modes:
+        instructions = []
+        with open(f"../benchmarks/{file_name}") as f:
+            instructions = f.readlines()
+        ir = Scheduler_t(mode, instructions)
+        cycle = ir.schedule()
 
-		new_file = f"results/result{mode}{file_name}"
-		f = open(new_file,'w')
-		f.write(scheduled)
-		f.close()
+        scheduled = "\n".join(ir.scheduled_instructions)
+        new_file = f"results/result_{count}_{file_name}"
+        f = open(new_file,'w')
+        f.write(scheduled)
+        f.close()
+        count+=1
+    return 0
 
 
 if __name__ == "__main__":
