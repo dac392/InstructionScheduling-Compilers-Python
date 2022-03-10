@@ -1,5 +1,6 @@
 from InstructionList_t import InstructionList_t
 from Heuristics_t import Heuristics_t
+from MostDescendents_t import MostDescendents_t
 class Scheduler_t:
 	def __init__ (self, mode, instructions):
 		self.mode = mode
@@ -135,28 +136,30 @@ class Scheduler_t:
 		IL.anti_dependence_weight_fix();
 
 		# IL.weight_test()
-		# IL.print_instructions([])
+		#IL.print_instructions([])
 		
-
 		cycle = 0
 		ready = self.init_ready(IL) # {chain_index : chain}
 		active = {}	# {time : [chain, chain_index]}
-		MD_t = Heuristics_t(ready,IL)
-		MD_t.init_most_descendents(IL, ready)
-
+		# MD_t = Heuristics_t(ready,IL)
+		# MD_t.init_most_descendents(IL, ready)
+		# MD_t.find_anti_dependence(IL)
+		MD_t = MostDescendents_t(ready, IL)
+		#optimal_path = []
 		while True:
-			#print(f"cycle: {cycle}")
+			# print(f"cycle: {cycle}")
 			MD_t.move_to_ready(cycle, active, ready)
-			next_chain = MD_t.get_highest_descendent(ready)
-			#print(f"chain that we setled on: {next_chain}\n")
+			next_chain = MD_t.get_next_chain(ready,IL)
+			# print(f"chain that we setled on: {next_chain}\n")
 			if next_chain > -1:
-				scheduled = MD_t.move_to_active(cycle, next_chain, ready, active)
+				scheduled = MD_t.move_to_active(cycle, next_chain, ready, active,IL)
 				self.scheduled_instructions.append(scheduled)
 				#print(f"in cycle {cycle}, scheduled {scheduled}")
 			
 			if  MD_t.has_finished(ready, active):
 				#print(f"occurences: {MD_t.occurence_list}")
-				#print(f"path: {MD_t.scheduled_tracker}")
+				# print(f"path: {MD_t.scheduled_tracker}")
+				# IL.print_instructions([])
 				return cycle+1
 			cycle += 1
 

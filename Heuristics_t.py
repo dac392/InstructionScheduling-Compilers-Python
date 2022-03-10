@@ -60,7 +60,7 @@ class Heuristics_t:
 		self.ready_latencies.pop(instruction)
 		self.scheduled_tracker.append(instruction)
 		if self.second_heuristic:
-			self.most_descendents[next_chain]-=1
+			# self.most_descendents[next_chain]-=1
 			self.ready_descendent_tracker.pop(next_chain)
 			# self.merge_point_lookup.pop(instruction)	we'll see about this
 
@@ -261,8 +261,43 @@ class Heuristics_t:
 		# print(f"occurences: {state}")
 		return state
 
+	def find_anti_dependence(self, IL):
+		preliminary = self.preliminary_dependencies(IL)	#[ {instruction : id} {} ...]
+		#print(preliminary)
+		for index, entire_chain in enumerate(preliminary):
+			if index+1 == len(preliminary):
+				break
+			for j_index, j_chain in enumerate(preliminary, start=index+1):
+				#least_length = len(entire_chain) if len(entire_chain) < len(j_chain) else: len(j_chain)
+				j_vals = list(j_chain.values())
+				print(j_vals)
+				j_writes = [IL.parser.get_writable(j) for j in j_vals]
+				for instruction, str_inst in entire_chain.items():
+					main_read = IL.parser.get_readable(str_inst)
+					for i,j in enumerate(j_writes):
+						if main_read == j:
+							if instruction not in IL.anti_dependencies:
+								IL.anti_dependencies.update({instruction : [j_vals[i]]  })
+							else:
+								IL.anti_dependencies[instruction].append(j_vals[i])
+		print(IL.anti_dependencies)
 
-
+	def preliminary_dependencies(self, IL):
+		seen_list = []
+		dependencies = []
+		for chain_index, chain in IL.instructions.items():
+			ptr = chain
+			dep = {}
+			while ptr is not None:
+				inst_num = ptr.instruction_number
+				if inst_num not in seen_list:
+					seen_list.append(inst_num)
+					dep.update({inst_num : ptr.instruction})
+				else:
+					break
+				ptr = ptr.next
+			dependencies.append(dep)
+		return dependencies
 
 
 
