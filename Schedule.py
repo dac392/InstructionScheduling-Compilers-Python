@@ -54,7 +54,7 @@ def main(args):
 	print_instruction(ir.scheduled_instructions)
 	print_error("\n-----------------DONE---------------------------\n")
 
-def tesing_function(file_name):
+def testing_function(file_name):
     modes = [MODE_A, MODE_B, MODE_C]
     count = 1
     for mode in modes:
