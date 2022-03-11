@@ -60,7 +60,7 @@ class Heuristics_t:
 		self.ready_latencies.pop(instruction)
 		self.scheduled_tracker.append(instruction)
 		if self.second_heuristic:
-			# self.most_descendents[next_chain]-=1
+			#self.most_descendents[next_chain]-=1
 			self.ready_descendent_tracker.pop(next_chain)
 			# self.merge_point_lookup.pop(instruction)	we'll see about this
 
@@ -178,32 +178,20 @@ class Heuristics_t:
 		highest_chain = self.find_highest_descendent_chain()
 		instruction = ready[highest_chain].instruction_number
 		# print(f"in theory it should be {highest_chain}")
-		if instruction in self.anti_dependence and self.anti_dependence[instruction] in self.scheduled_tracker:
-			return highest_chain
-		if self.occurence_list[instruction] == 1 or (self.occurence_list[instruction]>1 and self.ready_instructions[instruction] > 1):
-			return highest_chain
+		if self.occurence_list[instruction] == 1 or (self.occurence_list[instruction] > 1 and self.ready_instructions[instruction] == 2):
+			if instruction in self.anti_dependence and self.anti_dependence[instruction] not in self.scheduled_tracker: 
+				return highest_chain
 
-		# if self.occurence_list[instruction] > 1 and self.ready_instructions[instruction] != 2:
-		# 	merge_list = self.merge_point_lookup[instruction]
-		# 	for c in merge_list:
-		# 		if c != highest_chain and c in self.ready_descendent_tracker:
-		# 			return c
-		highest = 0
+		highest = -1
 		highest_chain = -1
 		for chain_index, chain in ready.items():
 			instruction = chain.instruction_number
-			if instruction in self.anti_dependence and self.anti_dependence[instruction] not in self.scheduled_tracker: # instruction has to come before something else
-				# potential optimization, return the chain in which before is @
-				continue
-			if self.occurence_list[instruction] > 1 and self.ready_instructions[instruction] != 2:
-				continue
-			if instruction in self.scheduled_tracker:
-				print(f"Warning, instruction {instruction} should not be in ready anymore, it was already processed. we messed up")
-				continue
-
-			if self.ready_descendent_tracker[chain_index] > highest:
-				highest = self.ready_descendent_tracker[chain_index]
-				highest_chain = chain_index
+			if self.occurence_list[instruction] == 1 or (self.occurence_list[instruction] > 1 and self.ready_instructions[instruction] == 2):
+				if instruction in self.anti_dependence and self.anti_dependence[instruction] not in self.scheduled_tracker: # instruction has to come before something else
+					continue
+				if highest < self.ready_descendent_tracker[chain_index]:
+					highest_chain = chain_index
+					highest = self.ready_descendent_tracker[chain_index]
 
 		return highest_chain
 
@@ -260,53 +248,3 @@ class Heuristics_t:
 
 		# print(f"occurences: {state}")
 		return state
-
-	def find_anti_dependence(self, IL):
-		preliminary = self.preliminary_dependencies(IL)	#[ {instruction : id} {} ...]
-		#print(preliminary)
-		for index, entire_chain in enumerate(preliminary):
-			if index+1 == len(preliminary):
-				break
-			for j_index, j_chain in enumerate(preliminary, start=index+1):
-				#least_length = len(entire_chain) if len(entire_chain) < len(j_chain) else: len(j_chain)
-				j_vals = list(j_chain.values())
-				print(j_vals)
-				j_writes = [IL.parser.get_writable(j) for j in j_vals]
-				for instruction, str_inst in entire_chain.items():
-					main_read = IL.parser.get_readable(str_inst)
-					for i,j in enumerate(j_writes):
-						if main_read == j:
-							if instruction not in IL.anti_dependencies:
-								IL.anti_dependencies.update({instruction : [j_vals[i]]  })
-							else:
-								IL.anti_dependencies[instruction].append(j_vals[i])
-		print(IL.anti_dependencies)
-
-	def preliminary_dependencies(self, IL):
-		seen_list = []
-		dependencies = []
-		for chain_index, chain in IL.instructions.items():
-			ptr = chain
-			dep = {}
-			while ptr is not None:
-				inst_num = ptr.instruction_number
-				if inst_num not in seen_list:
-					seen_list.append(inst_num)
-					dep.update({inst_num : ptr.instruction})
-				else:
-					break
-				ptr = ptr.next
-			dependencies.append(dep)
-		return dependencies
-
-
-
-
-
-
-
-
-
-
-
-

@@ -135,21 +135,22 @@ class Scheduler_t:
 		IL.find_anti_dependence()
 		IL.anti_dependence_weight_fix();
 
-		# IL.weight_test()
-		#IL.print_instructions([])
-		
 		cycle = 0
 		ready = self.init_ready(IL) # {chain_index : chain}
 		active = {}	# {time : [chain, chain_index]}
+
 		MD_t = MostDescendents_t(ready, IL)
 		while True:
 			MD_t.move_to_ready(cycle, active, ready)
 			next_chain = MD_t.get_next_chain(ready,IL)
+
 			if next_chain > -1:
-				scheduled = MD_t.move_to_active(cycle, next_chain, ready, active,IL)
+				scheduled = MD_t.move_to_active(cycle, next_chain, ready, active)
 				self.scheduled_instructions.append(scheduled)
 			
+
 			if  MD_t.has_finished(ready, active) or cycle>1000:
+
 				return cycle+1
 			cycle += 1
 

@@ -1,21 +1,18 @@
 class MostDescendents_t:
 	def __init__(self, ready, IL):
-		self.ready_instructions = self.init_ready_tracker(ready)		# {instruction : count}
-			# ^ make sure that you only add at most 2 chains with the same instruction number.
-			#	all other additional chains should just terminate
-		#self.instruction_positions = self.init_ready_positions(ready)	# {instruction : [chain]}
-		self.instruction_positions = self.init_ready_positions(ready)	# {instruction : [chain]}
-		self.ready_latencies = self.init_ready_latencies(ready)			# {instruction : latency}
-		self.anti_dependence = self.init_anti_dependence(IL)			# {after : before}
+		self.ready_instructions = self.init_ready_tracker(ready)		
+		self.instruction_positions = self.init_ready_positions(ready)	
+		self.ready_latencies = self.init_ready_latencies(ready)			
+		self.anti_dependence = self.init_anti_dependence(IL)			
 		
-		self.live_ranges = self.init_live_ranges(IL)					# {register : [ [start,end]... ]}
-		self.lock = {}													# {register : chain}
-		self.locked_chains = {}											# {register : chain}
+		# self.live_ranges = self.init_live_ranges(IL)					
+		# self.lock = {}													
+		# self.locked_chains = {}											
 
-		self.descendents = self.init_descendents(IL)					# {chain : descendent_count}
-		self.ready_descendents = self.init_ready_descendents(ready)		# {chain : descendent_count}
+		self.descendents = self.init_descendents(IL)					
+		self.ready_descendents = self.init_ready_descendents(ready)		
 		self.merge_point_lookup = self.init_merge_point_lookup(IL)
-		self.occurence_list = self.init_occurence_list(IL)				# {instruction : count}
+		self.occurence_list = self.init_occurence_list(IL)
 		self.scheduled_tracker = []
 
 
@@ -34,12 +31,6 @@ class MostDescendents_t:
 			if self.occurence_list[instruction] == 1 or (self.occurence_list[instruction] > 1 and self.ready_instructions[instruction] == 2):
 				if instruction in self.anti_dependence and self.anti_dependence[instruction] not in self.scheduled_tracker: # instruction has to come before something else
 					continue
-				# formated = chain.instruction
-				# readable = IL.parser.get_readable(formated)
-				# writable = IL.parser.get_writable(formated)
-				# holder = self.is_chain_holder(chain_index, readable)
-				# can_be_locked = self.can_be_locked(chain_index, writable, instruction)
-				# if holder or can_be_locked :
 				if highest < self.ready_descendents[chain_index]:
 					highest_chain = chain_index
 					highest = self.ready_descendents[chain_index]
@@ -47,72 +38,10 @@ class MostDescendents_t:
 
 		return highest_chain
 
-
-	# def is_chain_holder(self, chain_index, readable):
-	# 	state = False
-	# 	for r in readable:
-	# 		if r in self.locked_chains and self.locked_chains[r] == chain_index:
-	# 			state = True
-	# 		else:
-	# 			state = False
-	# 	return state
-
-	# def can_be_locked(self, chain_index, writable, instruction):
-	# 	if writable != -1  and writable in self.locked_chains:
-	# 		live_range = self.lock[writable]
-	# 		if self.locked_chains[writable] == chain_index:
-	# 			return True
-	# 	if writable != -1 and writable not in self.locked_chains:
-	# 		return True
-	# 	return False
-
-
-	# def get_live_range(self, writable, readable, instruction):
-	# 	locks = self.live_ranges[writable]
-	# 	for index, range_cluster in enumerate(locks):
-	# 		if range_cluster[0] == instruction:
-	# 			return self.live_ranges[writable].pop(index)
-
-	# def mutex_lock(self, instruction, formated, next_chain, IL):
-	# 	writable = IL.parser.get_writable(formated)
-	# 	readable = IL.parser.get_readable(formated)
-	# 	# holder = self.is_chain_holder(chain_index, readable)
-	# 	can_be_locked = self.can_be_locked(next_chain, writable, instruction)
-	# 	if can_be_locked:	# should we check for holder?
-	# 		live_range = self.get_live_range(writable, readable, instruction)
-	# 		self.lock.update({writable : live_range})
-	# 		self.locked_chains.update({writable : next_chain})
-
-	# def mutex_unlock(self, instruction, formated, next_chain, IL):
-	# 	writable = IL.parser.get_writable(formated)
-	# 	readable = IL.parser.get_readable(formated)
-
-	# 	if readable != [-1]:	# maybe we have to check that this chain is allowed to make changes?
-	# 		for r in readable:
-	# 			live_range = self.lock[r]
-	# 			if instruction == live_range[1]:
-	# 				self.lock.pop(r)
-	# 				self.locked_chains.pop(r)
-	# 				print(f"unlocking {r}")
-	# 	elif writable != -1 and readable == [-1]:
-	# 		live_range = self.lock[writable]
-	# 		if live_range[0] == live_range[1]:
-	# 			self.lock.pop(writable)
-	# 			self.locked_chains.pop(writable)
-	# 			print(f"unlocking: {writable}")
-	# 	else:
-	# 		print(f"we are not unlocking instruction {instruction} : {formated}")
-
 	def move_to_active(self, cycle, next_chain, ready, active, IL):
 		ready_instruction = ready.pop(next_chain)
 		instruction = ready_instruction.instruction_number
 		formated = ready_instruction.instruction
-		#self.mutex_lock(instruction, formated, next_chain, IL)
-		#print(f"moving to active {instruction} : {formated} in chain {next_chain}")
-		# print(f"lock: {self.lock}")
-		# print(f"locked_chain: {self.locked_chains}")
-		#print(f"ready instructions: {self.ready_instructions}")
-		
 		self.remove_additional_instruction(ready, instruction)
 		done_cycle = cycle+self.ready_latencies[instruction]
 		if done_cycle not in active:
@@ -123,11 +52,8 @@ class MostDescendents_t:
 		self.ready_instructions.pop(instruction)
 		self.instruction_positions.pop(instruction) # idk what this is but maybe check it, cause i feel like we might not be popping as much as we have to
 		self.scheduled_tracker.append(instruction)
-		# self.descendents[next_chain]-=1
 		self.ready_descendents.pop(next_chain)
-		#self.mutex_unlock(instruction, formated, next_chain, IL)
-		#print()
-		#self.merge_point_lookup.pop(instruction)	#we'll see about this
+		print()
 
 		return ready_instruction.instruction
 	def move_to_ready(self, cycle, active, ready):
@@ -185,13 +111,6 @@ class MostDescendents_t:
 		if not bool(ready) and not bool(active):
 			return True
 		return False
-
-
-
-
-
-
-
 
 
 
