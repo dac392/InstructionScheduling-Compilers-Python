@@ -145,7 +145,7 @@ class Scheduler_t:
 			next_chain = MD_t.get_next_chain(ready,IL)
 
 			if next_chain > -1:
-				scheduled = MD_t.move_to_active(cycle, next_chain, ready, active)
+				scheduled = MD_t.move_to_active(cycle, next_chain, ready, active, IL)
 				self.scheduled_instructions.append(scheduled)
 			
 

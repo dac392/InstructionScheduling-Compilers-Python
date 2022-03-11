@@ -53,7 +53,7 @@ class MostDescendents_t:
 		self.instruction_positions.pop(instruction) # idk what this is but maybe check it, cause i feel like we might not be popping as much as we have to
 		self.scheduled_tracker.append(instruction)
 		self.ready_descendents.pop(next_chain)
-		print()
+		# print()
 
 		return ready_instruction.instruction
 	def move_to_ready(self, cycle, active, ready):
@@ -249,7 +249,7 @@ class MostDescendents_t:
 			for j_index, j_chain in enumerate(preliminary, start=index+1):
 				#least_length = len(entire_chain) if len(entire_chain) < len(j_chain) else: len(j_chain)
 				j_vals = list(j_chain.values())
-				print(j_vals)
+				# print(j_vals)
 				j_writes = [IL.parser.get_writable(j) for j in j_vals]
 				for instruction, str_inst in entire_chain.items():
 					main_read = IL.parser.get_readable(str_inst)
@@ -259,7 +259,7 @@ class MostDescendents_t:
 								IL.anti_dependencies.update({instruction : [j_vals[i]]  })
 							else:
 								IL.anti_dependencies[instruction].append(j_vals[i])
-		print(IL.anti_dependencies)
+		# print(IL.anti_dependencies)
 
 	def preliminary_dependencies(self, IL):
 		seen_list = []
