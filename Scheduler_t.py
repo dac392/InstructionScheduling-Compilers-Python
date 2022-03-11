@@ -138,21 +138,19 @@ class Scheduler_t:
 		cycle = 0
 		ready = self.init_ready(IL) # {chain_index : chain}
 		active = {}	# {time : [chain, chain_index]}
-		MD_t = Heuristics_t(ready,IL)
-		MD_t.init_most_descendents(IL, ready)
 
+		MD_t = MostDescendents_t(ready, IL)
 		while True:
-			#print(f"cycle: {cycle}")
 			MD_t.move_to_ready(cycle, active, ready)
-			next_chain = MD_t.get_highest_descendent(ready)
-			#print(f"chain that we setled on: {next_chain}\n")
+			next_chain = MD_t.get_next_chain(ready,IL)
+
 			if next_chain > -1:
 				scheduled = MD_t.move_to_active(cycle, next_chain, ready, active)
 				self.scheduled_instructions.append(scheduled)
 			
-			if  MD_t.has_finished(ready, active):
-				#print(f"occurences: {MD_t.occurence_list}")
-				#print(f"path: {MD_t.scheduled_tracker}")
+
+			if  MD_t.has_finished(ready, active) or cycle>1000:
+
 				return cycle+1
 			cycle += 1
 
