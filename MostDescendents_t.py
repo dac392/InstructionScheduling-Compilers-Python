@@ -6,11 +6,13 @@ class MostDescendents_t:
 		#self.instruction_positions = self.init_ready_positions(ready)	# {instruction : [chain]}
 		self.instruction_positions = self.init_ready_positions(ready)	# {instruction : [chain]}
 		self.ready_latencies = self.init_ready_latencies(ready)			# {instruction : latency}
-
+		self.anti_dependence = self.init_anti_dependence(IL)			# {after : before}
+		
 		self.live_ranges = self.init_live_ranges(IL)					# {register : [ [start,end]... ]}
 		self.lock = {}													# {register : chain}
+		self.locked_chains = {}											# {register : chain}
 
-		self.descendents = self.init_descendents(IL)				# {chain : descendent_count}
+		self.descendents = self.init_descendents(IL)					# {chain : descendent_count}
 		self.ready_descendents = self.init_ready_descendents(ready)		# {chain : descendent_count}
 		self.merge_point_lookup = self.init_merge_point_lookup(IL)
 		self.occurence_list = self.init_occurence_list(IL)				# {instruction : count}
@@ -18,109 +20,99 @@ class MostDescendents_t:
 
 
 	# main functions
-	def find_highest_descendent_chain(self):
-		keys = list(self.ready_descendents.keys())
-		keys.sort()
-		highest = 0
-		highest_chain = -1
-		for k in keys:
-			v = self.ready_descendents[k]
-			if v > highest:
-				highest = v
-				highest_chain = k
-		return highest_chain
-
-	def check_next_chain(self, highest_chain, instruction, readable, writable):
-
-		if writable not in self.lock:
-			cond = False
-			for r in readable:
-				if r == -1:
-					cond = True
-				elif r in self.lock and instruction > self.lock[r][0] and instruction<= self.lock[r][1]:
-					cond = True
-			if cond:
-				return True
-		if writable in self.lock:
-			return False
-
-		return False
 	def get_next_chain(self, ready, IL):
 		if 1 in self.ready_instructions:
 			return 0
 		if not bool(ready):
 			return -1
-		highest_chain = self.find_highest_descendent_chain()
-		instruction = ready[highest_chain].instruction_number
-		formated = (ready[highest_chain].instruction)
-		readable = IL.parser.get_readable(formated)
-		writable = IL.parser.get_writable(formated)
 
-		if self.occurence_list[instruction] == 1 or (self.occurence_list[instruction]>1 and self.ready_instructions[instruction] > 1):
-			if self.check_next_chain(highest_chain, instruction, readable, writable):
-				return highest_chain
-
+		highest_late = -1
 		highest = -1
 		highest_chain = -1
 		for chain_index, chain in ready.items():
 			instruction = chain.instruction_number
-			formated = (chain.instruction)
-			readable = IL.parser.get_readable(formated)
-			writable = IL.parser.get_writable(formated)
-
-			if self.occurence_list[instruction] > 1 and self.ready_instructions[instruction] != 2:
-				continue
-			#print(f"checking instruction {instruction} w chain_index {chain_index}: descendent_count > highest: {self.ready_descendents[chain_index] > highest}")
-
-			if self.ready_descendents[chain_index] > highest:
-				if self.check_next_chain(highest_chain, instruction, readable, writable):
-					highest = self.ready_descendents[chain_index]
+			if self.occurence_list[instruction] == 1 or (self.occurence_list[instruction] > 1 and self.ready_instructions[instruction] == 2):
+				if instruction in self.anti_dependence and self.anti_dependence[instruction] not in self.scheduled_tracker: # instruction has to come before something else
+					continue
+				# formated = chain.instruction
+				# readable = IL.parser.get_readable(formated)
+				# writable = IL.parser.get_writable(formated)
+				# holder = self.is_chain_holder(chain_index, readable)
+				# can_be_locked = self.can_be_locked(chain_index, writable, instruction)
+				# if holder or can_be_locked :
+				if highest < self.ready_descendents[chain_index]:
 					highest_chain = chain_index
+					highest = self.ready_descendents[chain_index]
+
 
 		return highest_chain
 
-	def get_lock(self, writable, readable, instruction):
-		locks = self.live_ranges[writable]
-		for index, range_cluster in enumerate(locks):
-			if range_cluster[0] == instruction:
-				return self.live_ranges[writable].pop(index)
+
+	# def is_chain_holder(self, chain_index, readable):
+	# 	state = False
+	# 	for r in readable:
+	# 		if r in self.locked_chains and self.locked_chains[r] == chain_index:
+	# 			state = True
+	# 		else:
+	# 			state = False
+	# 	return state
+
+	# def can_be_locked(self, chain_index, writable, instruction):
+	# 	if writable != -1  and writable in self.locked_chains:
+	# 		live_range = self.lock[writable]
+	# 		if self.locked_chains[writable] == chain_index:
+	# 			return True
+	# 	if writable != -1 and writable not in self.locked_chains:
+	# 		return True
+	# 	return False
+
+
+	# def get_live_range(self, writable, readable, instruction):
+	# 	locks = self.live_ranges[writable]
+	# 	for index, range_cluster in enumerate(locks):
+	# 		if range_cluster[0] == instruction:
+	# 			return self.live_ranges[writable].pop(index)
+
+	# def mutex_lock(self, instruction, formated, next_chain, IL):
+	# 	writable = IL.parser.get_writable(formated)
+	# 	readable = IL.parser.get_readable(formated)
+	# 	# holder = self.is_chain_holder(chain_index, readable)
+	# 	can_be_locked = self.can_be_locked(next_chain, writable, instruction)
+	# 	if can_be_locked:	# should we check for holder?
+	# 		live_range = self.get_live_range(writable, readable, instruction)
+	# 		self.lock.update({writable : live_range})
+	# 		self.locked_chains.update({writable : next_chain})
+
+	# def mutex_unlock(self, instruction, formated, next_chain, IL):
+	# 	writable = IL.parser.get_writable(formated)
+	# 	readable = IL.parser.get_readable(formated)
+
+	# 	if readable != [-1]:	# maybe we have to check that this chain is allowed to make changes?
+	# 		for r in readable:
+	# 			live_range = self.lock[r]
+	# 			if instruction == live_range[1]:
+	# 				self.lock.pop(r)
+	# 				self.locked_chains.pop(r)
+	# 				print(f"unlocking {r}")
+	# 	elif writable != -1 and readable == [-1]:
+	# 		live_range = self.lock[writable]
+	# 		if live_range[0] == live_range[1]:
+	# 			self.lock.pop(writable)
+	# 			self.locked_chains.pop(writable)
+	# 			print(f"unlocking: {writable}")
+	# 	else:
+	# 		print(f"we are not unlocking instruction {instruction} : {formated}")
+
 	def move_to_active(self, cycle, next_chain, ready, active, IL):
 		ready_instruction = ready.pop(next_chain)
 		instruction = ready_instruction.instruction_number
-
 		formated = ready_instruction.instruction
-		writable = IL.parser.get_writable(formated)
-		readable = IL.parser.get_readable(formated)
-		early_finish = False
-		if writable != -1 and writable not in self.lock:
-			live_lock = self.get_lock(writable, readable, instruction)
-			if live_lock[0] == live_lock[1] or live_lock[0] == live_lock[1]+1:
-				early_finish = True
-			
-			self.lock.update({writable : live_lock})
-			#print(f"instruction {instruction} got the live range {live_lock}")
-
-		# print(f"for instruction {instruction}: {formated} and writable {writable} and readable {readable}")
-		# print(f"unlock : {writable in self.lock and self.lock[writable][1] == instruction}")
-		# print(f"writable w/o unlock: {self.lock}")
-		for r in readable:
-			
-			if r != -1:
-				# print(f"r in lock: {r in self.lock} and lock.end == instruction: {self.lock[r][1] == instruction}")
-				if r in self.lock and self.lock[r][1] == instruction:
-					self.lock.pop(r)
-					# print(f"unlocked {r}")
-					# print(f"writable w unlock: {self.lock}")
-			elif early_finish:
-				self.lock.pop(writable)
-				# print(f"unlocked {writable}, due to early finish")
-				# print(f"writable w unlock: {self.lock}")
-		# print(f"global descendents: {self.descendents}")
-		# print(f"ready descendents: {self.ready_descendents}")
-		# print(f"occunces: {self.occurence_list}")
-		# print(f"live ranges: {self.live_ranges}")
-		# print()
-
+		#self.mutex_lock(instruction, formated, next_chain, IL)
+		#print(f"moving to active {instruction} : {formated} in chain {next_chain}")
+		# print(f"lock: {self.lock}")
+		# print(f"locked_chain: {self.locked_chains}")
+		#print(f"ready instructions: {self.ready_instructions}")
+		
 		self.remove_additional_instruction(ready, instruction)
 		done_cycle = cycle+self.ready_latencies[instruction]
 		if done_cycle not in active:
@@ -129,10 +121,12 @@ class MostDescendents_t:
 			active[done_cycle].append( [ready_instruction, next_chain] )
 
 		self.ready_instructions.pop(instruction)
-		self.instruction_positions.pop(instruction)
+		self.instruction_positions.pop(instruction) # idk what this is but maybe check it, cause i feel like we might not be popping as much as we have to
 		self.scheduled_tracker.append(instruction)
-		self.descendents[next_chain]-=1
+		# self.descendents[next_chain]-=1
 		self.ready_descendents.pop(next_chain)
+		#self.mutex_unlock(instruction, formated, next_chain, IL)
+		#print()
 		#self.merge_point_lookup.pop(instruction)	#we'll see about this
 
 		return ready_instruction.instruction
@@ -152,15 +146,15 @@ class MostDescendents_t:
 					if instruction not in self.ready_instructions:
 						self.ready_instructions.update({instruction : 1})
 						self.ready_latencies.update({instruction : late})
+
 					else:
 						self.ready_instructions[instruction]+=1
-
 					self.ready_descendents.update({chain_index : self.descendents[chain_index]})
-			# print(f"active: {active}")
-			# print(f"ready: {self.ready_instructions}")
+
 
 	def can_be_made_ready(self, instruction, chain_index):
 		total_occurence = self.occurence_list[instruction]
+		# if chain_index not in self.
 		if instruction in self.scheduled_tracker:
 			return False
 
@@ -204,9 +198,10 @@ class MostDescendents_t:
 	# init statements
 	def init_live_ranges(self, IL):
 		state = {}
+		seen = []
 		for index, chain in IL.instructions.items():
+			in_this_chain = []
 			ptr = chain
-			seen = []
 			local = {}
 			while ptr is not None:
 				inst = ptr.instruction_number
@@ -254,6 +249,7 @@ class MostDescendents_t:
 				else:
 					state[chain_index]+=1
 				ptr = ptr.next
+
 		return state
 
 	def init_merge_point_lookup(self, IL):
@@ -325,5 +321,42 @@ class MostDescendents_t:
 			else:	# actually, this might never happen at init
 				state[instruction].append(chain_index)
 		return state
+	def find_anti_dependence(self, IL):
+		preliminary = self.preliminary_dependencies(IL)	#[ {instruction : id} {} ...]
+		#print(preliminary)
+		for index, entire_chain in enumerate(preliminary):
+			if index+1 == len(preliminary):
+				break
+			for j_index, j_chain in enumerate(preliminary, start=index+1):
+				#least_length = len(entire_chain) if len(entire_chain) < len(j_chain) else: len(j_chain)
+				j_vals = list(j_chain.values())
+				print(j_vals)
+				j_writes = [IL.parser.get_writable(j) for j in j_vals]
+				for instruction, str_inst in entire_chain.items():
+					main_read = IL.parser.get_readable(str_inst)
+					for i,j in enumerate(j_writes):
+						if main_read == j:
+							if instruction not in IL.anti_dependencies:
+								IL.anti_dependencies.update({instruction : [j_vals[i]]  })
+							else:
+								IL.anti_dependencies[instruction].append(j_vals[i])
+		print(IL.anti_dependencies)
+
+	def preliminary_dependencies(self, IL):
+		seen_list = []
+		dependencies = []
+		for chain_index, chain in IL.instructions.items():
+			ptr = chain
+			dep = {}
+			while ptr is not None:
+				inst_num = ptr.instruction_number
+				if inst_num not in seen_list:
+					seen_list.append(inst_num)
+					dep.update({inst_num : ptr.instruction})
+				else:
+					break
+				ptr = ptr.next
+			dependencies.append(dep)
+		return dependencies
 
 
